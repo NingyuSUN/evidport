@@ -1,0 +1,13 @@
+Evidence Database
+Copyright 2026 Ningyu Sun
+
+This standalone implementation reuses and adapts parser integration approaches
+from NingyuSUN/bioai-evidence-validator (Apache-2.0), especially its 2026-11-06
+local-paper pilot tools and TEI normalization. It has no runtime dependency on
+that project. Changes include independent content-addressed storage, canonical
+source locators, versioned conversion objects, review packets and admission gates.
+
+The user's historical paper_text.py pipeline is integrated through explicit
+input/output adapters. Its private snapshot and real paper outputs are not
+distributed in this repository. External parsers and models retain their own
+licenses. Paper copyright and access rights are not changed by ingestion.

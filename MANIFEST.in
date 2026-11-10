@@ -1,0 +1,9 @@
+include README.md LICENSE NOTICE PROJECT_INDEX.md AGENTS.md uv.lock
+recursive-include docs *.md
+recursive-include examples *.json
+prune artifacts
+prune data
+prune .venv
+prune dist
+prune .git
+global-exclude *.pyc __pycache__

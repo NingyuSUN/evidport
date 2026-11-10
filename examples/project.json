@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "project_id": "example-literature-project",
+  "store": "../data/evidence",
+  "queue": "../data/acquisition",
+  "inbox": "../data/inbox",
+  "runs": "../artifacts/project-runs",
+  "papers": [{"metadata": {
+    "doi": "10.1126/science.aay6690",
+    "title": "The genetic architecture of the human cerebral cortex",
+    "role": "paper"
+  }}]
+}

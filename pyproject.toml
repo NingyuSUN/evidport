@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-evidence-database"
+version = "0.1.0"
+description = "Versioned local evidence with source locators and explicit review gates"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{name = "Ningyu Sun"}]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["PyMuPDF==2.1", "pdfplumber==0.11.10", "requests>=2.32,<3"]
+dev = ["pytest>=8,<10", "ruff>=0.14"]
+
+[project.scripts]
+evidence-db = "evidence_database.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+
+[tool.setuptools.packages.find]
+where = ["src"]
