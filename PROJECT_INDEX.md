@@ -1,5 +1,30 @@
 # EvidPort — project index
 
+## CI resource cleanup — 2026-11-10 (UTC)
+
+EvidPort's first published revision `ed5dd1826becca992a7e9f0bf5474f90b9c1df4d`
+passed [its remote checks](https://github.com/NingyuSUN/evidport/actions/runs/42782858570)
+with 256 tests. The validator's first integration run also passed, but inspection
+of its Python 3.13/3.14 logs exposed unclosed acquisition SQLite connections.
+SQLite's transaction context commits or rolls back; it does not close a connection.
+
+The follow-up explicitly closes each acquisition connection after transaction exit,
+including error paths, and tests closure and rollback using real connections.
+The existing Store context already closed its connections. No original document,
+conversion, identity rule or review decision is changed by this lifecycle fix.
+CI now checks Python 3.12 and 3.14, and treats resource leaks and unhandled test
+thread/destructor exceptions as errors. Warnings are not suppressed.
+
+Local Python 3.12 validation passed all 265 tests (the original 256 plus nine
+connection-lifecycle cases) with those three warning classes treated as errors.
+The targeted subset passed 140 tests; Ruff and the source/candidate hash comparison
+passed. Remote Python 3.14 verification remains a separate check of the new commit.
+
+The implementation and regression tests are committed together. Inspect the current
+[CI results](https://github.com/NingyuSUN/evidport/actions) for this revision; prior
+successful runs are historical evidence, not a claim that a later revision was tested.
+Private logs and exact receipt hashes remain in the development archive.
+
 ## Publication round — 2026-11-10 (UTC)
 
 The owner selected **EvidPort** and authorized publication followed by CI monitoring

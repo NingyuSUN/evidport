@@ -3,6 +3,7 @@ import copy
 import csv
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pymupdf
@@ -42,6 +43,97 @@ def setup(tmp_path):
     result = queue.register([record], provenance={"scope": "synthetic fixture, not real literature"})
     paper_id = result["papers"][0]["paper_id"]
     return queue, store, record, paper_id, tmp_path
+
+
+def track_connections(monkeypatch, *, fail_sql=None):
+    actual_connect = sqlite3.connect
+    opened = []
+
+    class TrackedConnection(sqlite3.Connection):
+        def execute(self, sql, parameters=(), /):
+            result = super().execute(sql, parameters)
+            if fail_sql and sql.startswith(fail_sql):
+                raise RuntimeError("synthetic failure after SQL execution")
+            return result
+
+    def connect(*args, **kwargs):
+        connection = actual_connect(*args, **kwargs, factory=TrackedConnection)
+        statements = []
+        connection.set_trace_callback(statements.append)
+        # Keep actual connections alive: garbage collection must not hide missing close().
+        opened.append((connection, statements))
+        return connection
+
+    monkeypatch.setattr(sqlite3, "connect", connect)
+    return opened
+
+
+def assert_connections_closed(opened):
+    assert opened
+    for connection, _ in opened:
+        with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+            connection.execute("SELECT 1")
+
+
+@pytest.mark.parametrize("operation", ["initialize", "read", "register", "append", "read_only"])
+def test_queue_closes_connections_and_preserves_successful_operations(setup, monkeypatch, operation):
+    queue, store, record, paper_id, tmp_path = setup
+    state = queue.current(paper_id)
+    opened = track_connections(monkeypatch)
+    expected_batches, expected_events = 1, 1
+    if operation == "initialize":
+        queue = AcquisitionQueue(tmp_path / "new-queue", store)
+        expected_batches, expected_events = 0, 0
+    elif operation == "read":
+        assert queue.current(paper_id) == state
+    elif operation == "register":
+        queue.register([record], provenance={"scope": "second synthetic batch"})
+        expected_batches, expected_events = 2, 2
+    elif operation == "append":
+        queue._append(state, "synthetic-event", {})
+        expected_events = 2
+    else:
+        queue = AcquisitionQueue(queue.root, store, read_only=True)
+        assert queue.current(paper_id) == state
+    report = queue.audit()
+    assert report["ok"]
+    assert report["counts"]["batches"] == expected_batches
+    assert report["counts"]["events"] == expected_events
+    if operation in {"register", "append"}:
+        assert any("COMMIT" in statements for _, statements in opened)
+    assert_connections_closed(opened)
+
+
+@pytest.mark.parametrize(("operation", "fail_sql"), [
+    ("initialize", "CREATE TABLE IF NOT EXISTS events"),
+    ("read", "SELECT id,body FROM events"),
+    ("register", "INSERT OR IGNORE INTO batches"),
+    ("append", "INSERT INTO events"),
+])
+def test_queue_closes_connections_after_errors_and_rolls_back_writes(setup, monkeypatch, operation, fail_sql):
+    queue, store, record, paper_id, tmp_path = setup
+    state = queue.current(paper_id)
+    actual_connect = sqlite3.connect
+    with closing(actual_connect(queue.db_path)) as db:
+        before = {table: db.execute(f"SELECT * FROM {table}").fetchall() for table in ("batches", "events")}
+    opened = track_connections(monkeypatch, fail_sql=fail_sql)
+    with pytest.raises(RuntimeError, match="synthetic failure after SQL execution"):
+        if operation == "initialize":
+            AcquisitionQueue(tmp_path / "new-queue", store)
+        elif operation == "read":
+            queue.current(paper_id)
+        elif operation == "register":
+            queue.register([record], provenance={"scope": "synthetic failed batch"})
+        else:
+            queue._append(state, "synthetic-failed-event", {})
+    assert_connections_closed(opened)
+    with closing(actual_connect(queue.db_path)) as db:
+        after = {table: db.execute(f"SELECT * FROM {table}").fetchall() for table in ("batches", "events")}
+    assert after == before
+    if operation in {"register", "append"}:
+        # Failure is injected after the actual INSERT, so rollback must undo a real write.
+        assert any("ROLLBACK" in statements for _, statements in opened)
+        assert not any("COMMIT" in statements for _, statements in opened)
 
 
 def test_metadata_only_never_becomes_fulltext(setup):
@@ -125,7 +217,8 @@ def test_no_free_location_creates_manual_download_task(setup, monkeypatch):
     assert state["last_failure"] == "no_verified_free_pdf_location_found"
     report = queue.export_pending(tmp_path / "pending")
     assert report["need_pdf"] == 1 and report["verify_downloaded_file"] == 0
-    rows = list(csv.DictReader((tmp_path / "pending/pending.csv").open(encoding="utf-8-sig")))
+    with (tmp_path / "pending/pending.csv").open(encoding="utf-8-sig") as handle:
+        rows = list(csv.DictReader(handle))
     assert rows[0]["doi_url"] == "https://doi.org/" + DOI
     assert rows[0]["suggested_filename"] == paper_id + ".pdf"
     with pytest.raises(EvidenceError, match="new directory"):
@@ -382,7 +475,7 @@ def test_immutable_record_tampering_is_detected(setup, table):
 
 def test_event_sql_binding_tampering_is_detected(setup):
     queue, _, _, paper_id, _ = setup
-    with sqlite3.connect(queue.db_path) as db:
+    with closing(sqlite3.connect(queue.db_path)) as db, db:
         db.execute("UPDATE events SET paper_id='wrong'")
     with pytest.raises(EvidenceError, match="index binding"):
         queue.current(paper_id)
@@ -391,7 +484,7 @@ def test_event_sql_binding_tampering_is_detected(setup):
 
 def test_missing_index_row_is_detected(setup):
     queue, _, _, _, _ = setup
-    with sqlite3.connect(queue.db_path) as db:
+    with closing(sqlite3.connect(queue.db_path)) as db, db:
         db.execute("DELETE FROM events")
     assert not queue.audit()["ok"]
 

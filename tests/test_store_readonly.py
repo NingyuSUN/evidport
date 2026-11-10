@@ -2,6 +2,7 @@
 
 import hashlib
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -178,7 +179,7 @@ def test_read_only_validates_structure_without_repair(tmp_path, damage):
     elif damage == "corrupt_index":
         writer.db_path.write_bytes(b"not a SQLite database")
     else:
-        with sqlite3.connect(writer.db_path) as connection:
+        with closing(sqlite3.connect(writer.db_path)) as connection, connection:
             if damage == "missing_table":
                 connection.execute("DROP TABLE reviews")
             elif damage == "missing_column":
@@ -216,9 +217,8 @@ def test_read_only_still_detects_corrupt_evidence(existing_store):
 
 def test_wal_store_rejected_before_sqlite_creates_sidecars(tmp_path, monkeypatch):
     writer = Store(tmp_path / "db")
-    with sqlite3.connect(writer.db_path) as connection:
+    with closing(sqlite3.connect(writer.db_path)) as connection, connection:
         assert connection.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
-    connection.close()
     before = tree_state(writer.root)
     assert not (writer.root / "index.sqlite3-wal").exists()
     assert not (writer.root / "index.sqlite3-shm").exists()

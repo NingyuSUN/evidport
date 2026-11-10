@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ from evidence_database.store import EvidenceError, Store
 def test_search_detects_omitted_evidence_before_returning_no_hits(evidence, mutation):
     store, _, conversion, _, _ = evidence
     assert store.search("efficacy")[0]["citation"] == conversion["citations"][0]
-    with sqlite3.connect(store.db_path) as db:
+    with closing(sqlite3.connect(store.db_path)) as db, db:
         if mutation == "rewrite_fts":
             db.execute("UPDATE blocks_fts SET text='unrelated content'")
         else:
@@ -147,7 +148,7 @@ def test_tampering_fails_closed_after_approval(evidence, tmp_path, target):
     elif target == "packet":
         Path(packet_record["artifacts"]["page.png"]["path"]).write_bytes(b"tampered")
     else:
-        with sqlite3.connect(store.db_path) as db:
+        with closing(sqlite3.connect(store.db_path)) as db, db:
             if target == "index":
                 db.execute("UPDATE blocks SET text='tampered' WHERE citation=?", (citation,))
             else:
@@ -206,7 +207,7 @@ def test_review_record_and_deleted_index_detected(evidence, tmp_path):
     store, _, conversion, _, _ = evidence
     citation = conversion["citations"][0]
     event = approve(store, citation, packet(store, citation, tmp_path)["packet_id"])
-    with sqlite3.connect(store.db_path) as db:
+    with closing(sqlite3.connect(store.db_path)) as db, db:
         db.execute("DELETE FROM reviews WHERE review_id=?", (event["review_id"],))
     with pytest.raises(EvidenceError):
         store.check(citation, "Synthetic value")
@@ -302,7 +303,7 @@ def test_audit_detects_invented_block_in_both_indexes(evidence):
     store, _, _, _, _ = evidence
     fake_conversion = "cv_" + "a" * 64
     citation = f"evidence:{fake_conversion}#invented"
-    with sqlite3.connect(store.db_path) as db:
+    with closing(sqlite3.connect(store.db_path)) as db, db:
         db.execute("INSERT INTO blocks VALUES (?,?,?,?,?,?,?)", (
             citation, fake_conversion, "invented", "fake", "text", "{}", "{}"))
         db.execute("INSERT INTO blocks_fts(citation,text) VALUES (?,?)", (citation, "fake"))

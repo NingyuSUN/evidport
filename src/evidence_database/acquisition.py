@@ -12,6 +12,7 @@ import json
 import re
 import sqlite3
 import unicodedata
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -79,7 +80,7 @@ class AcquisitionQueue:
         self.root.mkdir(parents=True, exist_ok=True)
         for folder in ("batches", "events", "objects"):
             (self.root / folder).mkdir(exist_ok=True)
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             db.execute("CREATE TABLE IF NOT EXISTS batches (id TEXT PRIMARY KEY, body TEXT NOT NULL)")
             db.execute("CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, paper_id TEXT NOT NULL, "
                        "sequence INTEGER NOT NULL, body TEXT NOT NULL, UNIQUE(paper_id,sequence))")
@@ -109,7 +110,7 @@ class AcquisitionQueue:
 
     def _records(self, kind):
         prefix = "batch_" if kind == "batches" else "event_"
-        with sqlite3.connect(self.db_path.as_uri() + "?mode=ro", uri=True) as db:
+        with closing(sqlite3.connect(self.db_path.as_uri() + "?mode=ro", uri=True)) as db, db:
             db.execute("PRAGMA query_only=ON")
             indexed = dict(db.execute(f"SELECT id,body FROM {kind}"))
             bindings = ({row[0]: row[1:] for row in db.execute("SELECT id,paper_id,sequence FROM events")}
@@ -165,7 +166,7 @@ class AcquisitionQueue:
         expected_previous = state.pop("latest_event_id", None)
         stamp = datetime.now(UTC).isoformat()
         state["updated_at"] = stamp
-        with sqlite3.connect(self.db_path, timeout=30) as db:
+        with closing(sqlite3.connect(self.db_path, timeout=30)) as db, db:
             db.execute("BEGIN IMMEDIATE")
             previous = db.execute("SELECT id,sequence FROM events WHERE paper_id=? ORDER BY sequence DESC LIMIT 1",
                                   (state["paper_id"],)).fetchone()
@@ -248,7 +249,7 @@ class AcquisitionQueue:
         body = _json(batch)
         batch_id = "batch_" + _sha(body.encode())
         _write_once(self.root / "batches" / (batch_id + ".json"), body.encode())
-        with sqlite3.connect(self.db_path) as db:
+        with closing(sqlite3.connect(self.db_path)) as db, db:
             db.execute("INSERT OR IGNORE INTO batches VALUES (?,?)", (batch_id, body))
         selected = {}
         for record in records:
