@@ -1,4 +1,4 @@
-name: Evidence database checks
+name: EvidPort checks
 on:
   push:
     branches: [main]

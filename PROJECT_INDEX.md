@@ -1,4 +1,23 @@
-# Evidence Database — project index
+# EvidPort — project index
+
+## Publication round — 2026-11-10 (UTC)
+
+The owner selected **EvidPort** and authorized publication followed by CI monitoring
+and fixes. Tagline: **Traceable evidence for AI agents.** The target repository is
+[NingyuSUN/evidport](https://github.com/NingyuSUN/evidport).
+The package `local-evidence-database`, module `evidence_database`, and `evidence-db`
+CLI retain their existing names for compatibility. Local data paths remain user-selected.
+
+This round starts from local publication commit `d7c93cf8fb6c2dd1d44ea931908caec8fb3817f8`.
+Only public naming and publication metadata are updated before the first push;
+the engineering results below are the completed pre-publication checks. Remote CI
+is not yet verified at this record. Actual commit and synchronization are queried
+from Git and [Actions](https://github.com/NingyuSUN/evidport/actions), not inferred
+from a configured remote. Publish this repository before the validator integration.
+
+The earlier preparation record is preserved below. Detailed local release receipts
+remain outside this public checkout; cloud delivery is not applicable. Runtime
+originals, extraction versions and human review records are unchanged by naming.
 
 Updated: 2026-11-10T07:47:06.073273+00:00 (UTC). Validation evidence was finalized on 2026-11-10.
 
@@ -18,7 +37,7 @@ applicable to this round.
   The earlier baseline and private population hashes above are preserved as provenance.
 - Publication branch: `main`, in a separate repository with fresh publication history.
   The original development repository and its history remain intact.
-- Planned repository URL: https://github.com/NingyuSUN/evidence-database . This is the
+- Planned repository URL (updated for selected name): https://github.com/NingyuSUN/evidport . This is the
   intended publication target, not evidence that a remote repository or commit exists.
 - Public entry points: [README](README.md), [workflow guide](docs/PROJECT_WORKFLOW.md),
   [project example](examples/project.json), `src/evidence_database/` and `tests/`.

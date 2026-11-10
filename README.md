@@ -1,8 +1,13 @@
-# Evidence Database
+# EvidPort
+
+Traceable evidence for AI agents.
 
 A local evidence layer that connects paper acquisition, versioned extraction, original-page
 locations and quote-specific review. Missing full text stays visible as a DOI download task;
 bibliographic metadata never becomes a fabricated quotation.
+
+For compatibility, the distribution `local-evidence-database`, Python module `evidence_database`,
+and `evidence-db` CLI keep their existing names.
 
 ## Workflow
 

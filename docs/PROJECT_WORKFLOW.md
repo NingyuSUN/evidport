@@ -1,6 +1,6 @@
-# Project workflow and consumer integration
+# EvidPort project workflow and consumer integration
 
-The workflow joins acquisition, local intake and extraction without duplicating the evidence
+EvidPort joins acquisition, local intake and extraction without duplicating the evidence
 store. It works offline unless `sync --fetch` is requested. MCP packaging is deferred.
 
 ## Configure and resume
@@ -71,7 +71,7 @@ the search scope, not relevance or completeness. Provider query syntax may diffe
 
 ## Validator contract
 
-Install the independent library and BioAI Evidence Validator in the same environment, then:
+Install EvidPort and BioAI Evidence Validator in the same environment, then:
 
 ```sh
 bioevidence validate record.json --profile literature-claim --evidence-library /path/to/store
