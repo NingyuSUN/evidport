@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-11T06:49:09.307096+00:00",
+  "status": "passed",
+  "sdk_version": "2.3.0",
+  "daily_candidates": 11,
+  "daily_searchable_papers_checked": 9,
+  "identity_pending": 2,
+  "daily_cases_reused_from_unchanged_inputs": 3,
+  "daily_cases_new_this_attempt": 6,
+  "distinct_real_papers": 9,
+  "matching_real_quotes": 9,
+  "real_quotes_admitted": 0,
+  "fabricated_quotes_rejected": 9,
+  "manual_import_papers": 3,
+  "wrong_file_rejected": true,
+  "manual_matching_quotes": 3,
+  "manual_quotes_admitted": 0,
+  "manual_fabricated_quotes_rejected": 3,
+  "daily_partial_conversions": 5,
+  "original_page_resources_checked": 12,
+  "false_admissions_observed": 0,
+  "daily_audit_counts": {
+    "sources": 12,
+    "ingestions": 21,
+    "conversions": 57,
+    "packets": 7,
+    "reviews": 0
+  },
+  "manual_audit_counts": {
+    "sources": 3,
+    "ingestions": 3,
+    "conversions": 3,
+    "packets": 0,
+    "reviews": 0
+  },
+  "daily_files_unchanged": true,
+  "human_approvals_created": 0,
+  "scientifically_verified": false,
+  "tool_count": 13,
+  "resource_template_count": 4,
+  "daily_attention_count": 7,
+  "manual_remaining_attention_count": 1,
+  "quote_check_denominators": {
+    "real_unreviewed": 12,
+    "fabricated": 12,
+    "total": 24
+  },
+  "evidence_scope": "Engineering demonstration on a private corpus; public synthetic tests independently exercise the protocol and admission gates.",
+  "validator_cases": [
+    {
+      "case": "real-quote",
+      "overall_status": "review_required",
+      "rule_ids": [
+        "BEV015"
+      ],
+      "exit_code": 2,
+      "wire_matches_local": true
+    },
+    {
+      "case": "fabricated-quote",
+      "overall_status": "rejected",
+      "rule_ids": [
+        "BEV017"
+      ],
+      "exit_code": 1,
+      "wire_matches_local": true
+    },
+    {
+      "case": "wrong-source-sha",
+      "overall_status": "rejected",
+      "rule_ids": [
+        "BEV017"
+      ],
+      "exit_code": 1,
+      "wire_matches_local": true
+    }
+  ],
+  "client_check": {
+    "client": "Claude Code CLI",
+    "successful_read_tool_calls": 4,
+    "global_settings_changed": false,
+    "desktop_ui_reload_verified": false
+  },
+  "limitations": [
+    "Known-positive retrieval, not blind scientific question answering",
+    "Historical provider metadata reused; no live network acquisition in this run",
+    "Real quotation matching does not establish scientific support or human approval",
+    "Synthetic statement template used solely to exercise Validator transport and provenance checks",
+    "Three manual imports reuse papers from the nine-paper daily set; twelve extraction flows are not twelve independent papers",
+    "MCP import conversion exercises the existing baseline parser; completed status does not resolve historical OCR disagreements",
+    "Observed operation durations were under concurrent regression load and are not a performance benchmark",
+    "No real human approvals were created; no scientific, external, clinical or hallucination-rate validation",
+    "The private papers, machine configuration and detailed acquisition receipts are not distributed; this report is not an independently reproduced paper benchmark."
+  ]
+}

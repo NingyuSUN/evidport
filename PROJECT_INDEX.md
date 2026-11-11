@@ -1,6 +1,29 @@
 # EvidPort — project index
 
-## CI resource cleanup — 2026-11-10 (UTC)
+## Local MCP publication — 2026-11-11 (Asia/Tokyo)
+
+This revision merges the local stdio MCP interface over the existing acquisition,
+extraction and review workflow. The reviewed public candidate starts from `a6f26ff` and contains portable
+code, tests, configuration examples and documentation. Papers, databases, machine-specific
+settings and detailed private receipts are excluded.
+
+| Field | Scope and evidence |
+|---|---|
+| Inputs and implementation | Existing evidence-store and acquisition APIs; official Python MCP SDK 2.3.0 as an optional dependency. The MCP server provides 13 tools and 4 resource templates. It does not import Validator or create human approvals. |
+| Recorded local acceptance | Nine distinct searchable papers were checked; three were replayed through isolated DOI/manual-intake flows. The 12 extraction flows produced 12 matching real quotations and rejected 12 fabricated quotations, with zero automatic admissions. Two other candidate identities remained pending. See the [acceptance summary](evaluation/mcp-local-20261111.json). |
+| Consumer checks | Three actual Validator MCP cases produced the expected outcomes: a real unreviewed quotation required review; a fabricated quotation and incorrect source hash were rejected. Source files and existing review records remained unchanged. A Claude Code CLI session also completed status/search/get/check calls. |
+| Validation status | The public candidate passed 372 tests before the final three publication-guard cases were added; all 19 guard cases then passed, covering 375 distinct tests in total. Ruff, the public-tree check and package build passed. The development-only corpus harness is excluded. Both Python 3.12 and 3.14 passed all 375 tests, with no failures, skips or test warnings, in [PR CI run 42982805563](https://github.com/NingyuSUN/evidport/actions/runs/42982805563) for `63ce5dbef394f38abea13c7ef51499ae75feb1fa`. The merged revision has separate [main checks](https://github.com/NingyuSUN/evidport/actions/workflows/ci.yml?query=branch%3Amain). |
+| Public entry points | [README](README.md), [MCP usage](docs/MCP_USAGE.md), [agent reading rules](docs/AGENT_USAGE.md), [project workflow](docs/PROJECT_WORKFLOW.md), [project example](examples/project.json), source and tests. All configuration examples use repository-relative inputs. |
+| Limits | Known-positive retrieval and historical provider metadata were used. This round did not measure literature-search completeness, live-network acquisition, general transcription accuracy, scientific support or hallucination reduction. Partial extraction and uncertain identities retain their warnings. Desktop configuration approval/reload and multi-user deployment remain separate validation tasks. |
+| Git and publication | Regular two-parent merge of [PR #1](https://github.com/NingyuSUN/evidport/pull/1), preserving the reviewed commit and existing public history. Runtime files are unchanged from the tested PR; this index records the merge. Post-merge main CI must be checked for its exact revision. Query the exact index revision with `git log -1 -- PROJECT_INDEX.md`. Existing public history is retained; private development history is not published. |
+| Next | Verify the merged main revision, then pin Validator to this public commit and check its CI. Cloud delivery is not applicable. |
+
+## Historical records
+
+The records below describe earlier revisions and preparation stages. Their pending states,
+counts and next actions are historical; the current objective and scope are recorded above.
+
+### CI resource cleanup — 2026-11-10 (UTC)
 
 EvidPort's first published revision `ed5dd1826becca992a7e9f0bf5474f90b9c1df4d`
 passed [its remote checks](https://github.com/NingyuSUN/evidport/actions/runs/42782858570)
@@ -25,7 +48,7 @@ The implementation and regression tests are committed together. Inspect the curr
 successful runs are historical evidence, not a claim that a later revision was tested.
 Private logs and exact receipt hashes remain in the development archive.
 
-## Publication round — 2026-11-10 (UTC)
+### Publication round — 2026-11-10 (UTC)
 
 The owner selected **EvidPort** and authorized publication followed by CI monitoring
 and fixes. Tagline: **Traceable evidence for AI agents.** The target repository is
@@ -46,7 +69,7 @@ originals, extraction versions and human review records are unchanged by naming.
 
 Updated: 2026-11-10T07:47:06.073273+00:00 (UTC). Validation evidence was finalized on 2026-11-10.
 
-## Current objective and code provenance
+### Current objective and code provenance
 
 Prepare a portable, independently installable evidence layer for paper acquisition,
 versioned extraction, original-page location and quotation-specific review.
@@ -67,7 +90,7 @@ applicable to this round.
 - Public entry points: [README](README.md), [workflow guide](docs/PROJECT_WORKFLOW.md),
   [project example](examples/project.json), `src/evidence_database/` and `tests/`.
 
-## Verified engineering results
+### Verified engineering results
 
 | Scope | Result |
 |---|---|
@@ -86,7 +109,7 @@ These are engineering checks. They do not establish transcription accuracy acros
 papers, scientific support for a claim, hallucination reduction, or clinical validity.
 Synthetic review approvals are test fixtures, not human approval of real evidence.
 
-## Limits and publication state
+### Limits and publication state
 
 - A fresh environment with the complete frozen production dependency set was **not
   verified**: required versions were unavailable in the offline cache. No network
@@ -104,7 +127,7 @@ Synthetic review approvals are test fixtures, not human approval of real evidenc
   receipts are private records outside these public checkouts. Runtime originals,
   local stores and parser output belong in ignored directories.
 
-## Git status and next action
+### Git status and next action
 
 At this record, the validated publication candidate is awaiting its scoped local
 commit; no candidate commit SHA is invented here. Query the actual checkout after
@@ -113,7 +136,7 @@ commit with `git log -1 --format=%H`, and query this index's own revision with
 The next action is local review/commit, followed by the explicitly ordered publication
 steps above. Do not infer scientific admission from an installation or test result.
 
-## Preparation history — 2026-11-10
+### Preparation history — 2026-11-10
 
 The initial candidate was prepared from the development baseline above with an
 explicit public-file allowlist. Internal machine indexes, planning documents, tools,

@@ -1,0 +1,6 @@
+{
+  "command": "python",
+  "args": ["-m", "evidence_database.mcp_server", "--project-config", "project.json"],
+  "cwd": ".",
+  "env": {"PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
+}

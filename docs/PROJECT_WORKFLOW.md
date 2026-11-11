@@ -1,7 +1,8 @@
 # EvidPort project workflow and consumer integration
 
 EvidPort joins acquisition, local intake and extraction without duplicating the evidence
-store. It works offline unless `sync --fetch` is requested. MCP packaging is deferred.
+store. It works offline unless `sync --fetch` is requested. The optional
+[local MCP interface](MCP_USAGE.md) exposes the same project and review boundaries.
 
 ## Configure and resume
 
@@ -74,7 +75,7 @@ the search scope, not relevance or completeness. Provider query syntax may diffe
 Install EvidPort and BioAI Evidence Validator in the same environment, then:
 
 ```sh
-bioevidence validate record.json --profile literature-claim --evidence-library /path/to/store
+bioevidence validate record.json --profile literature-claim --evidence-library data/evidence
 ```
 
 The adapter is optional and separate from the validator's older embedded archive option.
