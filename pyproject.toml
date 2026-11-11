@@ -14,11 +14,13 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
+mcp = ["mcp==2.3.0"]
 pdf = ["PyMuPDF==2.1", "pdfplumber==0.11.10", "requests>=2.32,<3"]
 dev = ["pytest>=8,<10", "ruff>=0.14"]
 
 [project.scripts]
 evidence-db = "evidence_database.cli:main"
+evidport-mcp = "evidence_database.mcp_server:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
