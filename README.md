@@ -119,3 +119,4 @@ is locally self-declared. Hashes do not protect against an administrator rewriti
 Read-only access supports SQLite DELETE mode; WAL mode is refused to avoid sidecar-file writes.
 
 Code: [Apache-2.0](LICENSE). Dependencies, models and papers retain their own licenses.
+Citation metadata: [CITATION.cff](CITATION.cff).

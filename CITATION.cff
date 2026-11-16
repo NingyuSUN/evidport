@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "EvidPort: traceable evidence for AI agents"
+abstract: >-
+  A local evidence layer for AI agents that connects paper acquisition,
+  versioned extraction, original-page provenance and quotation-specific
+  review. Missing full text stays visible as a download task; bibliographic
+  metadata never becomes a fabricated quotation. An optional local MCP server
+  exposes the same workflow, preserving the source checks and the human-review
+  gate.
+authors:
+  - family-names: Sun
+    given-names: Ningyu
+    alias: NingyuSUN
+repository-code: "https://github.com/NingyuSUN/evidport"
+url: "https://github.com/NingyuSUN/evidport"
+license: Apache-2.0
+version: 0.1.0
+keywords:
+  - evidence
+  - provenance
+  - scientific-literature
+  - citation-verification
+  - mcp
+  - ai-agents
+  - reproducibility

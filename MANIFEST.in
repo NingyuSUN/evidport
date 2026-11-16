@@ -1,4 +1,4 @@
-include README.md LICENSE NOTICE PROJECT_INDEX.md AGENTS.md uv.lock
+include README.md LICENSE NOTICE CITATION.cff PROJECT_INDEX.md AGENTS.md uv.lock
 recursive-include docs *.md
 recursive-include examples *.json
 recursive-include evaluation *.json
