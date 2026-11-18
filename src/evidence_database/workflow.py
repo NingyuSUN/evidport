@@ -18,8 +18,16 @@ def load_project(path):
     config = json.loads(raw.decode("utf-8-sig"))
     if not isinstance(config, dict) or config.get("schema") != 1:
         raise EvidenceError("Project requires schema=1")
-    if set(config) - {"schema", "project_id", "store", "queue", "inbox", "runs", "papers"}:
+    if set(config) - {"schema", "project_id", "store", "queue", "inbox", "runs", "papers", "verification"}:
         raise EvidenceError("Unknown project configuration field")
+    verification = config.setdefault("verification", {})
+    if (not isinstance(verification, dict) or set(verification) - {"admission", "ocr_command"}
+            or verification.get("admission", "human_review") not in ("human_review", "independent_reading")):
+        raise EvidenceError("verification accepts admission=human_review|independent_reading and ocr_command")
+    command = verification.get("ocr_command")
+    if command is not None and (not isinstance(command, list) or not command
+                                or any(not isinstance(part, str) or not part for part in command)):
+        raise EvidenceError("verification.ocr_command must be a nonempty list of strings")
     if not isinstance(config.get("project_id"), str) or not config["project_id"].strip():
         raise EvidenceError("Project requires project_id")
     paths = {}
@@ -58,6 +66,16 @@ def load_project(path):
         if paper.get("conversion_id") is not None and not re.fullmatch(r"cv_[0-9a-f]{64}", str(paper["conversion_id"])):
             raise EvidenceError("Invalid explicit conversion ID")
     return {**config, **paths, "config_path": path, "config_sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def lacks_independent_reading(store, state, config) -> bool:
+    """True when the project asks for an independent reading and the current conversion has none.
+
+    Such a paper is extracted again as a new version; the earlier version and its reviews stay as they are.
+    """
+    if not config["verification"].get("ocr_command") or not state.get("conversion_id"):
+        return False
+    return not store.conversion(state["conversion_id"])["settings"].get("independent_reading")
 
 
 def _selected(queue, config):
@@ -151,8 +169,8 @@ def sync_project(path, *, fetch=False, parse=True):
                 state = queue.bind_conversion(identifier, paper["conversion_id"])
                 operations.append({"paper_id": identifier, "action": "reuse_pinned_conversion",
                                    "conversion_id": state["conversion_id"]})
-            elif parse and not state["fulltext_searchable"]:
-                state = queue.convert(identifier)
+            elif parse and (not state["fulltext_searchable"] or lacks_independent_reading(store, state, config)):
+                state = queue.convert(identifier, ocr_command=config["verification"].get("ocr_command"))
                 operations.append({"paper_id": identifier, "action": "convert", "status": state["parsing_status"]})
         except (OSError, ValueError) as exc:
             errors.append({"paper_id": identifier, "error": str(exc)})

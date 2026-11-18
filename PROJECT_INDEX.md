@@ -1,5 +1,24 @@
 # EvidPort — project index
 
+## Machine verification of quotations — 2026-11-17 (Asia/Tokyo)
+
+Objective: let the system settle the transcription check that a person otherwise does for every
+quotation, and leave a person only what it cannot settle. Work is on the local branch
+`independent-reading-verification`; nothing is committed, pushed or published at this record.
+
+| Field | Scope and evidence |
+|---|---|
+| Change | The baseline conversion can record an OCR reading of every paragraph's rendered page region, the position of superscripts and letters set in symbol fonts. `check` reports `machine_verification` and, when the project sets `verification.admission` to `independent_reading`, admits a quotation that both readings agree on and that touches no known text-layer defect. The default remains human review only. See [machine verification](docs/MACHINE_VERIFICATION.md). |
+| Code | New `src/evidence_database/verification.py`; changes in `adapters.py` (adapter version 2), `store.py`, `workflow.py`, `acquisition.py`, `mcp_papers.py`, `mcp_evidence.py`, `mcp_server.py`, `cli.py`; new `tests/test_verification.py`. Block text, citations, the review ledger and human approval rules are unchanged. Machine verification writes no review record. |
+| Tests | 405 passed locally on Python 3.12 (375 existing, 30 new) with resource warnings as errors; Ruff and the public-tree check passed. Python 3.14 and remote CI have not run on this branch. |
+| Measurement before the change | 11 text-layer papers, 3,036 paragraph blocks, 127,254 words. Text layer and Tesseract 5.5 agreed on 95.2% of words. A fixed-seed sample of 59 short disagreements was judged against the page by an AI assistant: the text layer had wrong characters in 9, giving an estimated word accuracy near 99.5% (roughly 99.3% to 99.7%). The errors were systematic: minus signs stored as control characters, a ligature stored as another letter, detached accents, zero-width characters, lost word spaces, flattened superscripts. |
+| End-to-end run after the change | 12 library papers re-extracted into a separate scratch store, 3,052 regions read by Tesseract 4.1.1 on a second machine, no failed readings. Of 4,553 sentences of eight or more words, quoted as the block gives them, 3,144 (69.1%) were admitted without a person under the first rules. After the typography fix and the symbol-font rule below, re-evaluated without new OCR: 3,287 (72.2%), 87.9% of sentences without digits and 58.0% with digits. The rest are held back by reading disagreement (724), superscripts (368), symbol-font letters (73) and detected defects. Tesseract 5.5 readings of the same regions gave nearly the same rate as 4.1.1 (70.1% against 69.7% under the first rules). |
+| Accuracy of what was admitted | All 3,144 sentences admitted under the first rules were read a third time with RapidOCR and compared line by line: 2,277 agreed in all three readings, 457 were not fully read by the third engine, 410 differed. Of 200 differing places chosen for a look (all 177 that were not look-alike glyphs or punctuation, plus 23 look-alike ones), 198 were located on the page: the text layer was right in 197. The one error was a Greek alpha extracted as `a` from a symbol font and read the same by Tesseract. A font scan then found the same class elsewhere in the library (alpha, beta, micro as `m`, registered sign, small capitals). The symbol-font rule now holds these back; both known alpha errors are held, with 14 other sentences as collateral. |
+| Recorded acceptance quotations | Of the 12 real quotations from the 2026-11-11 run, 4 were admitted by agreement and 8 stayed pending; all 12 fabricated quotations were rejected. Several of those 12 are figure labels or journal footers rather than body sentences. |
+| Limits | Agreement is not proof; the check above covers 12 papers, and 157 look-alike differences and 53 punctuation-only ones were not compared with the page. All page comparisons were made by an AI assistant, not a human reviewer. Sentence-level rates describe whole sentences; an agent can often quote a span that avoids a citation mark. Scanned pages, tables and rotated pages are not machine-verified. The Validator support is on a separate local branch of that repository and is not merged. |
+| Records | Measurement scripts, crops, readings, the scratch store and reports are local, under ignored `artifacts/`. The original library was opened read-only and its file listing and index hash were unchanged afterwards. |
+| Next | Owner review of this branch and of the Validator branch `independent-reading-route`; commit both; enable `independent_reading` in a project and re-convert its papers. |
+
 ## Local MCP publication — 2026-11-11 (Asia/Tokyo)
 
 This revision merges the local stdio MCP interface over the existing acquisition,

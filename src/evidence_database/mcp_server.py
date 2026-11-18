@@ -27,6 +27,7 @@ def create_server(project_config: Path, *, allow_network=False):
         raise EvidenceError("Install the optional MCP dependency: uv sync --extra mcp --extra pdf") from exc
 
     config = load_project(project_config)
+    by_reading = config["verification"].get("admission") == "independent_reading"
     operation_lock = threading.RLock()
     papers = PaperTools(project_config, allow_network=allow_network)
     jobs = LocalJobs(config["runs"] / "mcp-jobs", operation_lock)
@@ -53,7 +54,8 @@ def create_server(project_config: Path, *, allow_network=False):
 
     def evidence():
         return EvidenceTools(config["store"], config["runs"] / "mcp-review",
-                             selected_versions=papers.selected_versions())
+                             selected_versions=papers.selected_versions(),
+                             accept_independent_reading=by_reading)
 
     def locked(function, *args, **kwargs):
         with jobs.operation_lock:
@@ -155,7 +157,9 @@ def create_server(project_config: Path, *, allow_network=False):
     @server.tool(structured_output=True, annotations=readonly)
     async def evidport_evidence_check_quote(citation: str,
                                            quote: Annotated[str, Field(min_length=1, max_length=20000)]) -> dict[str, Any]:
-        """Check complete exact quotation and mandatory original-page review. Matching alone never admits evidence."""
+        """Check complete exact quotation. Matching alone never admits evidence: admission needs a recorded
+        human original-page review or, when the project enables it, agreement with an independent OCR reading
+        of the same page region. The result names the route and anything that still needs a person."""
         return await call(lambda: evidence().check_quote(citation, quote))
 
     @server.tool(structured_output=True, annotations=readonly)
@@ -203,7 +207,8 @@ def main(argv=None):
         if args.describe:
             config = load_project(args.project_config)
             print(json.dumps({"server": "evidport_mcp", "transport": "stdio", "project_id": config["project_id"],
-                              "network_enabled": args.allow_network, "human_approval_tools": False}))
+                              "network_enabled": args.allow_network, "human_approval_tools": False,
+                              "admission": config["verification"].get("admission", "human_review")}))
             return 0
         create_server(args.project_config, allow_network=args.allow_network).run(transport="stdio")
     except (EvidenceError, OSError, ValueError) as exc:

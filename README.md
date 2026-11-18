@@ -79,6 +79,11 @@ The review packet compares extracted text with physical PDF pages, including rep
 Uncertain geometry is marked page-only/partial. A person must inspect the original before
 recording a human review; `check --inspect` tests text presence and never admits evidence.
 
+Most of that inspection can be done by machine. With an OCR command configured, each paragraph
+is read a second time from the rendered page, and a quotation both readings agree on, free of
+known text-layer defects, can be admitted without a person. The rest is left for review with
+the reason stated. This is off by default; see [machine verification](docs/MACHINE_VERIFICATION.md).
+
 ## Validator integration
 
 Install both local packages or their wheels in the same environment, then opt in:

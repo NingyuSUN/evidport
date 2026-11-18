@@ -16,6 +16,7 @@ import json
 import math
 import re
 import shutil
+import subprocess
 import tempfile
 import time
 import xml.etree.ElementTree as ET
@@ -23,8 +24,9 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
 from .store import EvidenceError
+from .verification import READING_DPI, READING_PAD, RegionReader, marked_ranges
 
-ADAPTER_VERSION = "1"
+ADAPTER_VERSION = "2"
 
 
 def _sha(path: Path) -> str:
@@ -568,11 +570,68 @@ def _versions(names) -> str:
     return ";".join(versions)
 
 
-def run_baseline(store, source_id: str) -> dict:
-    """Fresh local text-layer extraction with PyMuPDF and pdfplumber tables."""
+_WORD = re.compile(r"[A-Za-z]{4,}")
+
+
+def _span_lines(page) -> dict:
+    """Per text block, keyed by its rounded box: printed lines of (span text, is superscript, font)."""
+    return {tuple(round(value, 3) for value in block["bbox"]):
+            [[(span["text"], bool(span["flags"] & 1), span["font"]) for span in line["spans"]]
+             for line in block["lines"]]
+            for block in page.get_text("dict", sort=True)["blocks"] if block["type"] == 0}
+
+
+def _word_fonts(pages: list[dict]) -> set[str]:
+    """Fonts that spell a word somewhere in the document.
+
+    A font that never does, yet sets letters, is treated as a symbol font: publisher symbol fonts
+    map other glyphs onto letters, so alpha is extracted as a and micro as m.
+    """
+    return {font for page in pages for lines in page.values() for line in lines
+            for text, _, font in line if _WORD.search(text)}
+
+
+def _typography(text: str, lines: list, text_fonts: set[str]) -> dict:
+    """Superscript and symbol-font ranges of one block; nothing when its spans do not reproduce the text."""
+    raised = marked_ranges(text, [[(span, high) for span, high, _ in line] for line in lines])
+    symbols = marked_ranges(text, [[(span, font not in text_fonts and any(c.isascii() and c.isalpha() for c in span))
+                                    for span, _, font in line] for line in lines])
+    return {} if raised is None or symbols is None else {"superscripts": raised, "symbol_font_spans": symbols}
+
+
+def _read_regions(page, rows: list[dict], reader, engine: dict) -> int:
+    """Attach an OCR reading of each block's rendered region; return how many readings failed."""
+    import pymupdf
+
+    scale = pymupdf.Matrix(READING_DPI / 72, READING_DPI / 72)
+    images, targets = [], []
+    for block in rows:
+        box = block["locator"]["bbox"]
+        clip = pymupdf.Rect(box[0] - READING_PAD, box[1] - READING_PAD,
+                            box[2] + READING_PAD, box[3] + READING_PAD) & page.rect
+        if clip.is_empty or clip.width < 4 or clip.height < 4:
+            continue
+        images.append(page.get_pixmap(matrix=scale, clip=clip, alpha=False).tobytes("png"))
+        targets.append(block)
+    failed = 0
+    for block, text in zip(targets, reader.read_all(images), strict=True):
+        if text is None:
+            failed += 1
+        else:
+            block["independent_reading"] = {"text": text, **engine}
+    return failed
+
+
+def run_baseline(store, source_id: str, *, ocr_command=None) -> dict:
+    """Fresh local text-layer extraction with PyMuPDF and pdfplumber tables.
+
+    With an OCR command (argument, or JSON list in EVIDPORT_OCR_COMMAND) every
+    paragraph region is also read independently, so a quotation both readings
+    agree on can later be verified without a person. Block text is unchanged.
+    """
     source = store.source(source_id)
     settings = {"execution": "fresh", "ocr": False, "text_sort": "pymupdf_sort_true",
-                "table_settings": {}, "adapter_version": ADAPTER_VERSION,
+                "table_settings": {}, "adapter_version": ADAPTER_VERSION, "independent_reading": None,
                 "started_at": dt.datetime.now(dt.UTC).isoformat()}
     version = _versions(["pymupdf", "pdfplumber"])
     issues = ["layout_table_and_numeric_accuracy_requires_review", "images_not_interpreted"]
@@ -585,21 +644,43 @@ def run_baseline(store, source_id: str) -> dict:
             import pdfplumber
             import pymupdf
 
+            reader, engine = RegionReader.from_setting(ocr_command), {}
+            if reader:
+                try:
+                    settings["independent_reading"] = {**reader.describe(), "blocks_read": 0, "blocks_failed": 0}
+                    engine = {key: settings["independent_reading"][key] for key in ("engine", "engine_version")}
+                except (OSError, ValueError, subprocess.SubprocessError) as exc:
+                    # The text-layer extraction is still valid; only machine verification is unavailable.
+                    issues.append(f"independent_reading_unavailable: {type(exc).__name__}: {exc}")
+                    reader = None
             with pymupdf.open(source["path"]) as pdf, pdfplumber.open(source["path"]) as tables_pdf:
+                page_spans = [_span_lines(page) for page in pdf]
+                text_fonts = _word_fonts(page_spans)
                 for number, page in enumerate(pdf, 1):
                     text_blocks = page.get_text("blocks", sort=True)
+                    span_lines = page_spans[number - 1]
                     page_native = {"page": number, "width": page.cropbox.width, "height": page.cropbox.height,
                                    "text_blocks": text_blocks, "tables": []}
-                    chars = 0
+                    chars, paragraphs = 0, []
                     for row in text_blocks:
                         if row[6] != 0 or not row[4].strip():
                             continue
                         chars += len(row[4])
-                        blocks.append({"id": f"b{len(blocks) + 1:06d}", "kind": "paragraph",
-                                       "text": row[4].strip(),
-                                       "locator": {"page": number, "bbox": list(row[:4]),
-                                                   "origin": "top_left", "coordinate_units": "pdf_points"},
-                                       "native_locator": {"page": number, "block_number": row[5]}})
+                        block = {"id": f"b{len(blocks) + 1:06d}", "kind": "paragraph",
+                                 "text": row[4].strip(),
+                                 "locator": {"page": number, "bbox": list(row[:4]),
+                                             "origin": "top_left", "coordinate_units": "pdf_points"},
+                                 "native_locator": {"page": number, "block_number": row[5]}}
+                        lines = span_lines.get(tuple(round(value, 3) for value in row[:4]))
+                        if lines is not None:
+                            block.update(_typography(row[4], lines, text_fonts))
+                        blocks.append(block)
+                        paragraphs.append(block)
+                    if reader and not page.rotation:
+                        failed = _read_regions(page, paragraphs, reader, engine)
+                        settings["independent_reading"]["blocks_failed"] += failed
+                        settings["independent_reading"]["blocks_read"] += sum(
+                            "independent_reading" in block for block in paragraphs)
                     if chars < 80:
                         issues.append(f"low_text_page_requires_ocr_or_review: {number}")
                     try:
@@ -623,6 +704,9 @@ def run_baseline(store, source_id: str) -> dict:
                     native["pages"].append(page_native)
             if not blocks:
                 raise EvidenceError("No text/table blocks; OCR may be required")
+            if reader and settings["independent_reading"]["blocks_failed"]:
+                issues.append("independent_reading_failed_blocks: "
+                              f"{settings['independent_reading']['blocks_failed']}")
             _dump(folder / "document.json", native)
             _dump(folder / "blocks.json", blocks)
             artifacts.update({name: folder / name for name in ("document.json", "blocks.json")})

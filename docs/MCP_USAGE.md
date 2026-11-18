@@ -66,7 +66,9 @@ that every client has approved or reloaded a configuration.
    read the original-page resources when reviewing the extraction.
 5. Call `evidport_evidence_check_quote` with the complete quotation and pass the proposed record
    through Validator. A matching quotation without its recorded original-page review remains
-   `review_required`.
+   `review_required`, unless the project enables [machine verification](MACHINE_VERIFICATION.md)
+   and the result reports `admission_route: independent_reading`. Otherwise
+   `machine_verification.blocking` says what still needs a person.
 
 Metadata-only records contain no invented excerpt, citation or page number. No full-text hit
 does not prove that no relevant paper exists. The attention total also includes uncertain file

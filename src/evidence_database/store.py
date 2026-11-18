@@ -17,6 +17,8 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .verification import machine_verification
+
 
 class EvidenceError(ValueError):
     """Invalid input, unavailable evidence, or failed integrity verification."""
@@ -55,6 +57,11 @@ def _matches(text: str, quote: str) -> bool:
     Word and numeric token boundaries stop '5' matching '15', '-5', or '5.2'.
     This confirms extraction, not context, entailment, or scientific truth.
     """
+    return next(_match_starts(text, quote), None) is not None
+
+
+def _match_starts(text: str, quote: str):
+    """Offsets, in the whitespace-collapsed text, of every boundary-valid occurrence of the quote."""
     text, quote = " ".join(text.split()), _quote(quote)
     pos = 0
     while (start := text.find(quote, pos)) != -1:
@@ -91,9 +98,8 @@ def _matches(text: str, quote: str) -> bool:
         if has_numeric_suffix and numeric_tail and right_context.lstrip(numeric_marks + " ")[:1].isnumeric():
             right_bad = True
         if not left_bad and not right_bad:
-            return True
+            yield start
         pos = start + 1
-    return False
 
 
 class Store:
@@ -698,12 +704,20 @@ class Store:
         self._events()
         return {**record, "review_id": review_id}
 
-    def check(self, citation: str, quote: str, *, require_review=True) -> dict:
-        if type(require_review) is not bool:
-            raise EvidenceError("require_review must be a boolean")
+    def check(self, citation: str, quote: str, *, require_review=True, accept_independent_reading=False) -> dict:
+        """Admit an exact quotation after a human review of the original page.
+
+        With ``accept_independent_reading`` a quotation is also admitted when the
+        text layer and the recorded OCR reading of the same page region agree on
+        it and it touches no known text-layer defect. That route records no review;
+        a recorded rejection or revocation of the quotation always overrides it.
+        """
+        if type(require_review) is not bool or type(accept_independent_reading) is not bool:
+            raise EvidenceError("require_review and accept_independent_reading must be booleans")
         normalized_quote = _quote(quote)
         item = self.get(citation)
-        matches = _matches(item["block"]["text"], normalized_quote)
+        starts = list(_match_starts(item["block"]["text"], normalized_quote))
+        matches = bool(starts)
         events = [e for e in self._events(citation) if e["normalized_quote"] == normalized_quote]
         event = events[-1] if events else None
         approved = bool(event and event["decision"] == "approve" and event["reviewer_kind"] == "human"
@@ -712,15 +726,24 @@ class Store:
             if not event["packet_id"]:
                 raise EvidenceError("Approved event is missing its original packet")
             self._packet(event["packet_id"], item)
-        admitted = bool(matches and require_review and approved)
+        machine = (machine_verification(item["block"], normalized_quote, starts, _matches) if matches
+                   else {"status": "not_applicable", "blocking": ["quote_not_found"]})
+        by_reading = bool(accept_independent_reading and machine["status"] == "agrees" and not event)
+        admitted = bool(matches and require_review and (approved or by_reading))
+        route = None if not admitted else "human_review" if approved else "independent_reading"
         reason = ("inspection_only" if not require_review else "quote_not_found" if not matches else
-                  "human_reviewed_extraction" if admitted else event["decision"] if event else "pending_review")
+                  "human_reviewed_extraction" if route == "human_review" else
+                  "independent_reading_agreement" if route else event["decision"] if event else "pending_review")
+        meaning = ("Text layer and an independent OCR reading agree on this quotation; no person reviewed it; "
+                   "not scientific, external, or clinical validation" if route == "independent_reading" else
+                   "Reviewed extraction only; not scientific, external, or clinical validation")
         return {"citation": citation, "quote": quote, "quote_matches": matches, "admitted": admitted,
-                "reason": reason, "review_status": event["decision"] if event else "pending",
+                "reason": reason, "admission_route": route, "machine_verification": machine,
+                "review_status": event["decision"] if event else "pending",
                 "conversion_status": item["conversion_status"], "conversion_issues": item["conversion_issues"],
                 "parser": item["parser"], "parser_version": item["parser_version"],
                 "review_id": event["review_id"] if event else None, "scientifically_verified": False,
-                "meaning": "Reviewed extraction only; not scientific, external, or clinical validation"}
+                "meaning": meaning}
 
     def audit(self) -> dict:
         errors, counts = [], {}

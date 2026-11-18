@@ -20,6 +20,9 @@ Use the bibliographic title and retain its provenance. Optional paper fields are
 | `sha256` | Expected bytes of that file; mismatch prevents intake |
 | `conversion_id` | An explicit existing conversion of the verified original |
 
+An optional top-level `verification` object configures an independent OCR reading and whether
+agreement may admit a quotation; see [machine verification](MACHINE_VERIFICATION.md).
+
 `metadata.document_id` preserves an existing local document identifier. The `role` distinguishes
 main articles and supplements; a supplement needs a distinct `attachment_id`. A selected
 conversion must belong to the exact source revision and must not be failed. There is no

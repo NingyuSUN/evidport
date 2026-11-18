@@ -11,8 +11,13 @@ with its original, extraction version, location and warnings.
    substitute a different PDF or parser version. Version inventories are metadata checks;
    exact retrieval verifies the cited artifacts.
 3. Check the complete quotation. `quote_matches=true` establishes text presence only.
-   `admitted=true` means the system's quote-specific extraction review gate passed; it does not
-   establish scientific support for a claim. A newly prepared review packet is not an approval.
+   `admitted=true` means the system's quote-specific extraction gate passed; it does not
+   establish scientific support for a claim. `admission_route` says how: `human_review` for a
+   recorded review, `independent_reading` when the text layer and an OCR reading of the page
+   agree (see [machine verification](MACHINE_VERIFICATION.md)). Report the route as it is; never
+   describe machine agreement as a human review. When a quotation is not admitted, pass on
+   `machine_verification.blocking` so the person knows exactly what to look at.
+   A newly prepared review packet is not an approval.
 4. Preserve `review_required`, rejection, revocation, identity uncertainty and integrity failures.
    An agent may diagnose differences and prepare review material, but must never label its own
    action as human review. Human reviewer identity in this local system is self-declared, not

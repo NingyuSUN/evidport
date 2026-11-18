@@ -430,7 +430,7 @@ class AcquisitionQueue:
                 return state
         return state
 
-    def convert(self, paper_id, backend="baseline", *, endpoint=None):
+    def convert(self, paper_id, backend="baseline", *, endpoint=None, ocr_command=None):
         self._require_writable()
         from .adapters import run_baseline, run_grobid
         state = self.current(paper_id)
@@ -440,7 +440,8 @@ class AcquisitionQueue:
             raise EvidenceError("Acquisition conversion supports baseline or grobid")
         if backend == "grobid" and not endpoint:
             raise EvidenceError("GROBID requires an explicit endpoint")
-        result = (run_baseline(self.store, state["source_id"]) if backend == "baseline"
+        options = {"ocr_command": ocr_command} if ocr_command else {}
+        result = (run_baseline(self.store, state["source_id"], **options) if backend == "baseline"
                   else run_grobid(self.store, state["source_id"], endpoint=endpoint))
         state["last_conversion_attempt"] = {"conversion_id": result["conversion_id"], "status": result["status"]}
         if result["status"] != "failed" or not state["fulltext_searchable"]:
