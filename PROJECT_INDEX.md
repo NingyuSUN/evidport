@@ -1,5 +1,20 @@
 # EvidPort — project index
 
+## Quotations taken from stored text — 2026-11-18 (Asia/Tokyo)
+
+Objective: stop losing real quotations because whoever typed them changed them. Work is on the
+local branch `quote-by-position`; see Git for whether it has been committed or published.
+
+| Field | Scope and evidence |
+|---|---|
+| Finding that prompted it | In a private study of 92 model-written claims on three papers, 50 of 149 typed quotations were not found in their cited block by the exact check: about 17 only joined a word broken at a line end or changed a dash or quote style, at least 7 wrote out a symbol the text layer had stored as a control character, the rest were reworded or stitched with an ellipsis. |
+| Change | `check` stays exact. New: a block's sentences can be numbered and a quotation taken by position (`Store.sentences`, `Store.sentence_quote`; `show --sentences`, `check --sentences 2-3`; `sentences` on `evidport_evidence_get`, `first_sentence`/`last_sentence` on `evidport_evidence_check_quote`). A typed quotation that is not found returns `suggested_quotes`: the stored text of the one place it corresponds to, with what differed. Letters and digits are never substituted; an ambiguous place or a reworded quotation gets no suggestion; the typed quotation itself is never admitted. The tool count is unchanged. |
+| Code | New `src/evidence_database/quoting.py` and `tests/test_quoting.py`; changes in `store.py`, `mcp_evidence.py`, `mcp_server.py`, `cli.py`; guides updated. |
+| Measured effect | Re-running the same 149 stored quotations: 28 of the 50 unfound ones resolve to stored text (32 stored quotations, since stitched ones split), 22 do not. Of the 28, 15 are then admitted by independent reading; the others are found but held for a person, mostly because the stored text contains a control character. Claims needing no person at all rise from 27 to 31 of 92 under the stored semantic review, with no known problem claim among them. |
+| Limits | The effect of quoting by position cannot be measured on stored model output; it needs new generation. The 22 unresolved quotations are reworded and only position quoting avoids them. The study's reference labels were made by AI reviewers, not experts, and three papers is a small sample. A resolved quotation was not re-read by the semantic reviewer. |
+
+The historical entries below retain the evidence for earlier revisions.
+
 ## Machine verification of quotations — 2026-11-17 (Asia/Tokyo)
 
 Objective: let the system settle the transcription check that a person otherwise does for every

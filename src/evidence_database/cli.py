@@ -37,9 +37,15 @@ def parser():
     for name in ("show", "history"):
         command = commands.add_parser(name)
         command.add_argument("--citation", required=True)
+        if name == "show":
+            command.add_argument("--sentences", action="store_true",
+                                 help="Also number the block's sentences, to quote by position with check --sentences")
     check = commands.add_parser("check", help="Admit only an exact, human-reviewed quote")
     check.add_argument("--citation", required=True)
-    check.add_argument("--quote", required=True)
+    quoted = check.add_mutually_exclusive_group(required=True)
+    quoted.add_argument("--quote")
+    quoted.add_argument("--sentences", metavar="FIRST[-LAST]",
+                        help="Take the quotation from the stored text by sentence position, e.g. 2 or 2-3")
     check.add_argument("--inspect", action="store_true", help="Check text presence only; never admits evidence")
     check.add_argument("--accept-independent-reading", action="store_true",
                        help="Also admit a quote the text layer and the recorded OCR reading agree on")
@@ -127,9 +133,16 @@ def main(argv=None):
             result = store.search(args.query, limit=args.limit)
         elif args.command == "show":
             result = store.get(args.citation)
+            if args.sentences:
+                result = {**result, "sentences": store.sentences(args.citation)}
         elif args.command == "history":
             result = store.reviews(args.citation)
         elif args.command == "check":
+            if args.sentences:
+                first, _, last = args.sentences.partition("-")
+                if not first.isdigit() or (last and not last.isdigit()):
+                    raise ValueError("--sentences takes FIRST or FIRST-LAST, counted from 1")
+                args.quote = store.sentence_quote(args.citation, int(first), int(last) if last else None)
             result = store.check(args.citation, args.quote, require_review=not args.inspect,
                                  accept_independent_reading=args.accept_independent_reading)
             exit_code = 0 if result.get("quote_matches" if args.inspect else "admitted") else 2

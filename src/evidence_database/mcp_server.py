@@ -150,17 +150,25 @@ def create_server(project_config: Path, *, allow_network=False):
                                                     document_id=document_id, conversion_id=conversion_id))
 
     @server.tool(structured_output=True, annotations=readonly)
-    async def evidport_evidence_get(citation: str) -> dict[str, Any]:
-        """Read an exact evidence citation with source SHA, page/region, version, issues and review state."""
-        return await call(lambda: evidence().get(citation))
+    async def evidport_evidence_get(citation: str, sentences: bool = False) -> dict[str, Any]:
+        """Read an exact evidence citation with source SHA, page/region, version, issues and review state.
+        With sentences=true the block's sentences are numbered, so a quotation can be named by position
+        in evidport_evidence_check_quote instead of being typed."""
+        return await call(lambda: evidence().get(citation, sentences=sentences))
 
     @server.tool(structured_output=True, annotations=readonly)
-    async def evidport_evidence_check_quote(citation: str,
-                                           quote: Annotated[str, Field(min_length=1, max_length=20000)]) -> dict[str, Any]:
-        """Check complete exact quotation. Matching alone never admits evidence: admission needs a recorded
-        human original-page review or, when the project enables it, agreement with an independent OCR reading
-        of the same page region. The result names the route and anything that still needs a person."""
-        return await call(lambda: evidence().check_quote(citation, quote))
+    async def evidport_evidence_check_quote(
+            citation: str, quote: Annotated[str, Field(min_length=1, max_length=20000)] | None = None,
+            first_sentence: Annotated[int, Field(ge=1)] | None = None,
+            last_sentence: Annotated[int, Field(ge=1)] | None = None) -> dict[str, Any]:
+        """Check complete exact quotation. Prefer first_sentence/last_sentence (numbers from
+        evidport_evidence_get with sentences=true): the quotation is then taken from the stored text and
+        returned in `quote`, so it cannot differ from the source. A typed quote must match exactly; when it
+        does not, `suggested_quotes` gives the stored text it corresponds to, to use instead. Matching alone
+        never admits evidence: admission needs a recorded human original-page review or, when the project
+        enables it, agreement with an independent OCR reading of the same page region. The result names
+        the route and anything that still needs a person."""
+        return await call(lambda: evidence().check_quote(citation, quote, first_sentence, last_sentence))
 
     @server.tool(structured_output=True, annotations=readonly)
     async def evidport_evidence_versions(document_id: str, limit: Annotated[int, Field(ge=1, le=20)] = 10,

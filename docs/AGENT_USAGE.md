@@ -10,7 +10,13 @@ with its original, extraction version, location and warnings.
    SHA-256, conversion ID, page or region and unresolved extraction warnings. Do not silently
    substitute a different PDF or parser version. Version inventories are metadata checks;
    exact retrieval verifies the cited artifacts.
-3. Check the complete quotation. `quote_matches=true` establishes text presence only.
+3. Quote by position, not by typing. Ask for the block's numbered sentences and name the ones you
+   mean; the system returns the stored text, and that text is the quotation. Retyping changes it:
+   a word broken at a line end gets joined, a symbol the text layer lost gets written out, two
+   passages get stitched with an ellipsis, and the exact check then fails. Never repair, shorten
+   or join stored text yourself. If a typed quotation is not found and `suggested_quotes` is
+   given, use that stored text and check it again; cite stitched passages as separate quotations.
+   Check the complete quotation. `quote_matches=true` establishes text presence only.
    `admitted=true` means the system's quote-specific extraction gate passed; it does not
    establish scientific support for a claim. `admission_route` says how: `human_review` for a
    recorded review, `independent_reading` when the text layer and an OCR reading of the page
