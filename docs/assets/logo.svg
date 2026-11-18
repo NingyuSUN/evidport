@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="EvidPort logo: a quoted line on a page traced to a checked anchor">
+  <rect width="512" height="512" rx="96" fill="#0F2A43"/>
+  <path d="M150 92 H316 L378 154 V396 a24 24 0 0 1 -24 24 H150 a24 24 0 0 1 -24 -24 V116 a24 24 0 0 1 24 -24 Z" fill="#FFFFFF"/>
+  <path d="M316 92 V136 a18 18 0 0 0 18 18 H378 Z" fill="#C9D6E2"/>
+  <rect x="162" y="186" width="150" height="16" rx="8" fill="#C9D6E2"/>
+  <rect x="162" y="222" width="180" height="16" rx="8" fill="#C9D6E2"/>
+  <rect x="162" y="262" width="180" height="30" rx="8" fill="#19B5A5"/>
+  <rect x="162" y="316" width="180" height="16" rx="8" fill="#C9D6E2"/>
+  <rect x="162" y="352" width="112" height="16" rx="8" fill="#C9D6E2"/>
+  <path d="M342 277 H404 V356" fill="none" stroke="#19B5A5" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="404" cy="388" r="46" fill="#19B5A5"/>
+  <path d="M383 389 L398 404 L426 373" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
