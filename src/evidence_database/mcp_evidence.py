@@ -81,7 +81,11 @@ def _pages(locator):
 class EvidenceTools:
     """Evidence retrieval with fixed roots, explicit versions and strict review checks."""
 
-    def __init__(self, store_root: Path, review_root: Path, selected_versions: dict[str, str] | None = None):
+    def __init__(self, store_root: Path, review_root: Path, selected_versions: dict[str, str] | None = None,
+                 *, accept_independent_reading: bool = False):
+        if type(accept_independent_reading) is not bool:
+            raise EvidenceError("accept_independent_reading must be a boolean")
+        self.accept_independent_reading = accept_independent_reading
         self.store_root = Path(store_root).resolve()
         self.review_root = Path(review_root).resolve()
         if (self.store_root == self.review_root or self.store_root in self.review_root.parents
@@ -300,7 +304,8 @@ class EvidenceTools:
         _required(citation, "citation", 300)
         _required(quote, "quote", MAX_TEXT)
         store = self._store()
-        checked = store.check(citation, quote, require_review=True)
+        checked = store.check(citation, quote, require_review=True,
+                              accept_independent_reading=self.accept_independent_reading)
         item = store.get(citation)
         return {**checked, "source_id": item["source"]["source_id"],
                 "source_sha256": item["source"]["sha256"], "conversion_id": item["conversion_id"],

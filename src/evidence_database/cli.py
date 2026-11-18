@@ -41,6 +41,8 @@ def parser():
     check.add_argument("--citation", required=True)
     check.add_argument("--quote", required=True)
     check.add_argument("--inspect", action="store_true", help="Check text presence only; never admits evidence")
+    check.add_argument("--accept-independent-reading", action="store_true",
+                       help="Also admit a quote the text layer and the recorded OCR reading agree on")
     review = commands.add_parser("review", help="Append a review decision; human identity is self-declared")
     review.add_argument("--citation", required=True)
     review.add_argument("--quote", required=True)
@@ -128,7 +130,8 @@ def main(argv=None):
         elif args.command == "history":
             result = store.reviews(args.citation)
         elif args.command == "check":
-            result = store.check(args.citation, args.quote, require_review=not args.inspect)
+            result = store.check(args.citation, args.quote, require_review=not args.inspect,
+                                 accept_independent_reading=args.accept_independent_reading)
             exit_code = 0 if result.get("quote_matches" if args.inspect else "admitted") else 2
         elif args.command == "review":
             result = store.review(args.citation, args.quote, decision=args.decision,

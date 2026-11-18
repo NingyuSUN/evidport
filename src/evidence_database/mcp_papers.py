@@ -17,7 +17,7 @@ from urllib.parse import quote
 from . import literature
 from .acquisition import AcquisitionQueue
 from .store import EvidenceError, Store
-from .workflow import load_project
+from .workflow import lacks_independent_reading, load_project
 
 MAX_FILE_BYTES = 50 * 1024 * 1024
 MAX_RESULTS = 20
@@ -331,10 +331,12 @@ class PaperTools:
         if pinned:
             state = queue.bind_conversion(paper_id, pinned[0])
             operation = "reuse_pinned_conversion"
-        elif state.get("fulltext_searchable") and state.get("conversion_id"):
+        elif (state.get("fulltext_searchable") and state.get("conversion_id")
+              and not lacks_independent_reading(queue.store, state, self.config)):
             operation = "reuse_conversion"
         else:
-            state = queue.convert(paper_id, backend="baseline")
+            state = queue.convert(paper_id, backend="baseline",
+                                  ocr_command=self.config["verification"].get("ocr_command"))
             operation = "baseline_conversion"
         return {**_row(state), "operation": operation, "operation_succeeded": bool(state["fulltext_searchable"])}
 
