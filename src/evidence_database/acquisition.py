@@ -49,6 +49,17 @@ def _cover_evidence(text):
     return []
 
 
+def _doi_broken_by_layout(value, doi):
+    """A front-page string that is the expected DOI cut at a line-end hyphen, or run into the next word.
+
+    Text layers break a DOI at a hyphen and drop the space after one. Such a string is not another paper's
+    identifier; it is tolerated only when the exact DOI is also on the same page.
+    """
+    if value.endswith("-") and doi.startswith(value):
+        return True
+    return doi[-1:].isdigit() and value.startswith(doi) and value[len(doi):].isalpha()
+
+
 def _write_once(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -341,17 +352,25 @@ class AcquisitionQueue:
                         (check["page"] == 1 or (check["doi_match"] and
                          all(previous["cover_evidence"] for previous in checks[:check["page"] - 1])))), checks[0])
         found, doi_match, title_match = matched["dois"], matched["doi_match"], matched["title_match"]
+        # The expected DOI broken by the page layout is not a second identifier, if the exact one is there too.
+        broken = sorted({value for page in (checks[0]["dois"], found) if doi in page
+                         for value in page if value != doi and _doi_broken_by_layout(value, doi)}) if doi else []
+        # A degree record (thesis summary, examination sheet) carries the paper's title and DOI but is not the paper.
+        thesis = bool(re.search(r"学位論文|博士論文|論文審査|学位论文|博士论文", fronts[0][:3000]))
         identity.update(title_match=title_match, doi_match=doi_match, front_page_dois=checks[0]["dois"],
                         inspected_frontmatter_pages=checks, identity_page=matched["page"],
                         supplementary_frontmatter=supplement, expected_doi=doi,
+                        doi_layout_variants_tolerated=broken, degree_record_wording=thesis,
                         method="first_page_or_explicit_repository_cover_then_same_page_title_and_doi",
-                        identity_rule_version=2)
+                        identity_rule_version=3)
         if metadata["role"] == "paper" and supplement:
             return {**identity, "reason": "supplement_cannot_replace_primary_paper"}
         if metadata["role"] == "supplement":
             return {**identity, "status": "pending", "reason": "supplement_identity_requires_attachment_review"}
-        if doi and any(value != doi for value in checks[0]["dois"] + found):
+        if doi and any(value != doi and value not in broken for value in checks[0]["dois"] + found):
             return {**identity, "reason": "front_page_doi_mismatch"}
+        if metadata["role"] == "paper" and thesis:
+            return {**identity, "status": "pending", "reason": "degree_record_identity_requires_review"}
         if not title_match or (matched["page"] != 1 and not doi_match):
             return {**identity, "status": "pending", "reason": "title_identity_requires_review"}
         return {**identity, "status": "verified", "reason": "same_page_title_and_doi_match" if doi_match
@@ -480,7 +499,12 @@ class AcquisitionQueue:
                   and (paper_ids is None or state["paper_id"] in paper_ids)]
         outdir.mkdir(parents=True, exist_ok=False)
         fields = ["paper_id", "action", "title", "doi", "doi_url", "pmid", "provider", "record_id", "role",
-                  "reason", "suggested_filename", "retained_file"]
+                  "reason", "suggested_filename", "retained_file", "pmcid", "free_locations_tried"]
+        tried = {}  # addresses the queue already tried, so the reader does not repeat them by hand
+        for event in sorted(self._records("events"), key=lambda e: (e["paper_id"], e["sequence"])):
+            location = event["details"].get("location") if event["event"] == "download_failed" else None
+            if isinstance(location, dict) and location.get("url"):
+                tried.setdefault(event["paper_id"], []).append(location["url"])
         rows = []
         for state in states:
             m = state["metadata"]
@@ -492,7 +516,9 @@ class AcquisitionQueue:
                          "record_id": m.get("record_id", ""), "role": m["role"],
                          "reason": state["last_failure"] or "full_text_not_acquired",
                          "suggested_filename": state["paper_id"] + ".pdf",
-                         "retained_file": pending[-1]["object"]["path"] if pending else ""})
+                         "retained_file": pending[-1]["object"]["path"] if pending else "",
+                         "pmcid": m.get("pmcid") or "",
+                         "free_locations_tried": " ".join(dict.fromkeys(tried.get(state["paper_id"], [])))})
         for name, delimiter in (("pending.csv", ","), ("pending.tsv", "\t")):
             with (outdir / name).open("x", encoding="utf-8-sig", newline="") as handle:
                 writer = csv.DictWriter(handle, fieldnames=fields, delimiter=delimiter)

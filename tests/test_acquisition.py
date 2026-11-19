@@ -510,3 +510,68 @@ def test_invalid_identifier_is_rejected(setup):
     queue, _, _, _, _ = setup
     with pytest.raises(EvidenceError, match="Invalid acquisition paper ID"):
         queue.current("../../secret")
+
+
+LAYOUT_TITLE = "Layout broken identifier synthetic study of feline factor activity"
+LAYOUT_DOI = "10.1234/abc-2024-259811"
+
+
+def layout_paper(queue):
+    record = {"doi": LAYOUT_DOI, "title": LAYOUT_TITLE, "provider": "synthetic", "record_id": "layout-fixture"}
+    return queue.register([record], provenance={"scope": "synthetic fixture"})["papers"][0]["paper_id"]
+
+
+@pytest.mark.parametrize("extra, variant", [
+    ("Cite as 10.1234/abc-2024-\n259811 in print", "10.1234/abc-2024-"),
+    ("10.1234/abc-2024-259811Therapeutic notes follow", "10.1234/abc-2024-259811therapeutic"),
+])
+def test_expected_doi_broken_by_layout_is_not_a_second_identifier(setup, extra, variant):
+    queue, store, _, _, tmp_path = setup
+    paper_id = layout_paper(queue)
+    state = queue.attach(paper_id, make_pdf(tmp_path / "layout.pdf", title=LAYOUT_TITLE, doi=LAYOUT_DOI, extra=extra))
+    identity = state["attachments"][-1]["identity"]
+    assert state["availability"] == "available" and len(store.sources()) == 1
+    assert identity["doi_layout_variants_tolerated"] == [variant] and identity["identity_rule_version"] == 3
+
+
+@pytest.mark.parametrize("doi_line, extra", [
+    (None, "Cite as 10.1234/abc-2024-\n259811 in print"),                 # the exact DOI is nowhere on the page
+    (LAYOUT_DOI, "See also 10.1234/abc-2024-259811corr1 for a correction"),  # a longer, different identifier
+    (LAYOUT_DOI, "See also 10.1234/abc-2023- and others"),                   # not a cut of the expected DOI
+])
+def test_other_identifiers_near_the_expected_doi_still_conflict(setup, doi_line, extra):
+    queue, store, _, _, tmp_path = setup
+    paper_id = layout_paper(queue)
+    state = queue.attach(paper_id, make_pdf(tmp_path / "layout.pdf", title=LAYOUT_TITLE, doi=doi_line, extra=extra))
+    assert state["last_failure"] == "front_page_doi_mismatch" and not store.sources()
+
+
+def test_degree_record_with_the_papers_title_and_doi_needs_identity_review(setup):
+    queue, store, _, paper_id, tmp_path = setup
+    path = tmp_path / "degree-record.pdf"
+    with pymupdf.open() as doc:
+        page = doc.new_page()
+        page.insert_textbox((30, 30, 560, 200), TITLE + "\nhttps://doi.org/" + DOI, fontsize=12)
+        page.insert_text((30, 260), "学位論文内容の要旨", fontname="japan", fontsize=12)
+        doc.save(path)
+    state = queue.attach(paper_id, path)
+    assert state["availability"] == "identity_review_required" and not store.sources()
+    assert state["last_failure"] == "degree_record_identity_requires_review"
+    assert state["attachments"][-1]["identity"]["degree_record_wording"] is True
+
+
+def test_pending_export_lists_pmcid_and_the_free_locations_already_tried(setup, monkeypatch):
+    queue, _, record, paper_id, tmp_path = setup
+    queue.register([{**record, "pmcid": "PMC1234567", "oa_locations": [
+        {"url": "https://example.org/first.pdf", "eligibility": "free_access"},
+        {"url": "https://example.org/second.pdf", "eligibility": "open_access"}]}], provenance={})
+
+    def refused(url):
+        raise literature.LiteratureError(f"HTTP 403 for {url}")
+
+    monkeypatch.setattr(literature, "download_pdf", refused)
+    assert queue.fetch(paper_id)["availability"] == "waiting_user"
+    report = queue.export_pending(tmp_path / "pending")
+    row = json.loads((Path(report["directory"]) / "pending.json").read_text(encoding="utf-8"))[0]
+    assert row["pmcid"] == "PMC1234567" and row["action"] == "need_pdf"
+    assert row["free_locations_tried"] == "https://example.org/first.pdf https://example.org/second.pdf"
