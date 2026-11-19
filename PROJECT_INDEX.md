@@ -4,17 +4,32 @@
 
 Objective: correct one wrong refusal and one wrong acceptance in the check that a PDF is the paper
 it was fetched or attached for. Both were found on real files during a private agent run on
-2026-11-18. Work is on the branch `identity-rule-v3`.
+2026-11-18. Merged to main on 2026-11-19 with [PR #5](https://github.com/NingyuSUN/evidport/pull/5).
 
 | Field | Scope and evidence |
 |---|---|
 | Wrong refusal | Two official open-access PDFs were refused with `front_page_doi_mismatch`. Their text layer held the paper's DOI a second time, cut at a line-end hyphen in one and run into the following word in the other, and the rule read that string as another paper's identifier. A string of exactly one of these two shapes is now tolerated, and only when the exact DOI is on the same page; it is recorded in `doi_layout_variants_tolerated`. Any other DOI on the page still refuses the file. |
 | Wrong acceptance | A two-page degree record (thesis summary and examination sheet, in Japanese) carrying the paper's title and DOI was accepted as the paper. A file offered as a paper whose first page has degree-record wording (`学位論文`, `博士論文`, `論文審査`, `学位论文`, `博士论文`) now stays pending with `degree_record_identity_requires_review`. |
 | Pending list | `export_pending` adds `pmcid` and `free_locations_tried` (the addresses the queue already tried), so the person downloading does not repeat them. |
-| Code and tests | `src/evidence_database/acquisition.py`, `tests/test_acquisition.py` (7 new cases). `identity_rule_version` is now 3. 412 tests passed locally on Python 3.12; Ruff and the public-tree check passed. |
+| Code and tests | `src/evidence_database/acquisition.py`, `tests/test_acquisition.py` (7 new cases). `identity_rule_version` is now 3. 412 tests passed locally on Python 3.12; Ruff and the public-tree check passed. CI passed on Python 3.12 and 3.14 for `fa5ef4b`. |
 | Check on the real files | The three files kept from the run were inspected again under the new rule on a second machine: both refused PDFs are accepted with the tolerated string recorded, and the degree record goes to identity review. |
-| Consumers | Bio-AI Evidence Validator confirms a publication's identity only for rule versions it lists. A Validator that lists version 2 only reports papers checked under this revision as having no confirmed identity, so its change must be released together with this one. Papers already in a library keep the identity record they were accepted with; nothing is re-checked. |
+| Consumers | Bio-AI Evidence Validator confirms a publication's identity only for rule versions it lists. A Validator that lists version 2 only reports papers checked under this revision as having no confirmed identity. Its main branch accepts versions 2 and 3 since [its PR #50](https://github.com/NingyuSUN/bioai-evidence-validator/pull/50), merged the same day, and pins `fa5ef4b` of this repository. Papers already in a library keep the identity record they were accepted with; nothing is re-checked. |
 | Limits | Each change rests on one or two real files. Degree records in other languages, including English thesis covers, are not recognised. The supplement rule is unchanged: a paper whose first page has a line beginning "Supplementary information" is still refused as a supplement, which was a wrong refusal for one journal PDF in the same run. Whether existing libraries hold a degree record accepted under version 2 was not checked. |
+
+## Quotations taken from stored text — 2026-11-18 (Asia/Tokyo)
+
+Objective: stop losing real quotations because whoever typed them changed them. Work is on the
+local branch `quote-by-position`; see Git for whether it has been committed or published.
+
+| Field | Scope and evidence |
+|---|---|
+| Finding that prompted it | In a private study of 92 model-written claims on three papers, 50 of 149 typed quotations were not found in their cited block by the exact check: about 17 only joined a word broken at a line end or changed a dash or quote style, at least 7 wrote out a symbol the text layer had stored as a control character, the rest were reworded or stitched with an ellipsis. |
+| Change | `check` stays exact. New: a block's sentences can be numbered and a quotation taken by position (`Store.sentences`, `Store.sentence_quote`; `show --sentences`, `check --sentences 2-3`; `sentences` on `evidport_evidence_get`, `first_sentence`/`last_sentence` on `evidport_evidence_check_quote`). A typed quotation that is not found returns `suggested_quotes`: the stored text of the one place it corresponds to, with what differed. Letters and digits are never substituted; an ambiguous place or a reworded quotation gets no suggestion; the typed quotation itself is never admitted. The tool count is unchanged. |
+| Code | New `src/evidence_database/quoting.py` and `tests/test_quoting.py`; changes in `store.py`, `mcp_evidence.py`, `mcp_server.py`, `cli.py`; guides updated. |
+| Measured effect | Re-running the same 149 stored quotations: 28 of the 50 unfound ones resolve to stored text (32 stored quotations, since stitched ones split), 22 do not. Of the 28, 15 are then admitted by independent reading; the others are found but held for a person, mostly because the stored text contains a control character. Claims needing no person at all rise from 27 to 31 of 92 under the stored semantic review, with no known problem claim among them. |
+| Limits | The effect of quoting by position cannot be measured on stored model output; it needs new generation. The 22 unresolved quotations are reworded and only position quoting avoids them. The study's reference labels were made by AI reviewers, not experts, and three papers is a small sample. A resolved quotation was not re-read by the semantic reviewer. |
+
+The historical entries below retain the evidence for earlier revisions.
 
 ## Machine verification of quotations — 2026-11-17 (Asia/Tokyo)
 

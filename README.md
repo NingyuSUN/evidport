@@ -98,7 +98,13 @@ Find a passage and check a quotation against it:
 evidence-db --db data/evidence search 'sample size'
 evidence-db --db data/evidence show  --citation 'evidence:CONVERSION_ID#BLOCK_ID'
 evidence-db --db data/evidence check --citation 'evidence:CONVERSION_ID#BLOCK_ID' --quote 'Exact quotation'
+evidence-db --db data/evidence show  --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences
+evidence-db --db data/evidence check --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences 2-3
 ```
+
+The last two take the quotation from the stored text by sentence position, so nothing typed can
+differ from the source. A typed quotation that is not found comes back with the stored text it
+corresponds to, if there is exactly one such place.
 
 `check` answers with the decision and how it was reached (shortened here):
 

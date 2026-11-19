@@ -64,7 +64,14 @@ that every client has approved or reloaded a configuration.
 4. Search with `evidport_evidence_search`, inspect versions if needed, and retrieve the exact
    citation with `evidport_evidence_get`. Retain its source hash, version, location and warnings;
    read the original-page resources when reviewing the extraction.
-5. Call `evidport_evidence_check_quote` with the complete quotation and pass the proposed record
+5. Take the quotation from the stored text instead of typing it: call `evidport_evidence_get`
+   with `sentences: true`, then `evidport_evidence_check_quote` with `first_sentence` (and
+   `last_sentence`). The result's `quote` is the stored text of those sentences; put exactly that
+   in the record. A typed `quote` must match the block exactly. When it does not, the result is
+   `quote_not_found` and `suggested_quotes` gives the stored text it corresponds to, with what
+   differed (a word broken at a line end, a dash or quote style, a symbol the text layer did not
+   store, passages stitched with an ellipsis); check that text instead. Letters and digits are
+   never substituted, so a reworded quotation gets no suggestion. Pass the proposed record
    through Validator. A matching quotation without its recorded original-page review remains
    `review_required`, unless the project enables [machine verification](MACHINE_VERIFICATION.md)
    and the result reports `admission_route: independent_reading`. Otherwise

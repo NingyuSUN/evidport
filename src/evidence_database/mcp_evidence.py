@@ -295,15 +295,27 @@ class EvidenceTools:
                 "scope": "Local archived full text only; no hits do not imply no relevant literature exists",
                 "scientifically_verified": False}
 
-    def get(self, citation):
+    def get(self, citation, sentences=False):
         _required(citation, "citation", 300)
+        if type(sentences) is not bool:
+            raise EvidenceError("sentences must be a boolean")
         store = self._store()
-        return self._item(store, store.get(citation))
+        item = self._item(store, store.get(citation))
+        if sentences:
+            if item["text_truncated"]:
+                raise EvidenceError("Block is too long to number its sentences; quote from its text instead")
+            item["sentences"] = store.sentences(citation)
+        return item
 
-    def check_quote(self, citation, quote):
+    def check_quote(self, citation, quote=None, first_sentence=None, last_sentence=None):
         _required(citation, "citation", 300)
-        _required(quote, "quote", MAX_TEXT)
         store = self._store()
+        if first_sentence is not None or last_sentence is not None:
+            if quote is not None or first_sentence is None:
+                raise EvidenceError("Give either a quote or sentence positions starting with first_sentence")
+            # The quotation is taken from the stored text by position; nothing typed can differ from it.
+            quote = store.sentence_quote(citation, first_sentence, last_sentence)
+        _required(quote, "quote", MAX_TEXT)
         checked = store.check(citation, quote, require_review=True,
                               accept_independent_reading=self.accept_independent_reading)
         item = store.get(citation)

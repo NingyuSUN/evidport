@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .quoting import align, sentence_span, sentences
 from .verification import machine_verification
 
 
@@ -545,6 +546,20 @@ class Store:
         return {**item, "review_status": "quote_specific_reviews" if events else "pending",
                 "scientifically_verified": False}
 
+    def sentences(self, citation: str) -> list[dict]:
+        """The block's sentences, numbered from 1, as stored. Quote by position with ``sentence_quote``."""
+        text = self.get(citation)["block"]["text"]
+        collapsed = " ".join(text.split())
+        return [{"n": number, "text": collapsed[start:end]}
+                for number, (start, end) in enumerate(sentences(text), 1)]
+
+    def sentence_quote(self, citation: str, first: int, last: int | None = None) -> str:
+        """Stored text of sentences ``first`` to ``last``: a quotation taken by position, not typed."""
+        try:
+            return sentence_span(self.get(citation)["block"]["text"], first, last)
+        except ValueError as exc:
+            raise EvidenceError(str(exc)) from exc
+
     def search(self, query: str, *, limit=20) -> list[dict]:
         _nonempty(query, "query")
         if type(limit) is not int or not 1 <= limit <= 1000:
@@ -728,6 +743,13 @@ class Store:
             self._packet(event["packet_id"], item)
         machine = (machine_verification(item["block"], normalized_quote, starts, _matches) if matches
                    else {"status": "not_applicable", "blocking": ["quote_not_found"]})
+        # A typed quotation that is not found may still correspond to one place in the block. The stored
+        # text there is offered for the caller to quote instead; it is never admitted in the typed one's place.
+        suggested = [] if matches else [
+            {"quote": row["quote"], "differences": row["differences"]}
+            for row in align(item["block"]["text"], normalized_quote)]
+        if any(not _matches(item["block"]["text"], row["quote"]) for row in suggested):
+            suggested = []
         by_reading = bool(accept_independent_reading and machine["status"] == "agrees" and not event)
         admitted = bool(matches and require_review and (approved or by_reading))
         route = None if not admitted else "human_review" if approved else "independent_reading"
@@ -739,6 +761,7 @@ class Store:
                    "Reviewed extraction only; not scientific, external, or clinical validation")
         return {"citation": citation, "quote": quote, "quote_matches": matches, "admitted": admitted,
                 "reason": reason, "admission_route": route, "machine_verification": machine,
+                "suggested_quotes": suggested,
                 "review_status": event["decision"] if event else "pending",
                 "conversion_status": item["conversion_status"], "conversion_issues": item["conversion_issues"],
                 "parser": item["parser"], "parser_version": item["parser_version"],
