@@ -18,7 +18,9 @@ def load_project(path):
     config = json.loads(raw.decode("utf-8-sig"))
     if not isinstance(config, dict) or config.get("schema") != 1:
         raise EvidenceError("Project requires schema=1")
-    if set(config) - {"schema", "project_id", "store", "queue", "inbox", "runs", "papers", "verification"}:
+    allowed_fields = {"schema", "project_id", "store", "queue", "inbox", "runs",
+                      "memory", "papers", "verification"}
+    if set(config) - allowed_fields:
         raise EvidenceError("Unknown project configuration field")
     verification = config.setdefault("verification", {})
     if (not isinstance(verification, dict) or set(verification) - {"admission", "ocr_command"}
@@ -36,11 +38,23 @@ def load_project(path):
         if not isinstance(value, str) or not value.strip():
             raise EvidenceError(f"Project requires {name} path")
         paths[name] = (path.parent / value).resolve()
+    memory_value = config.get("memory")
+    if memory_value is not None:
+        if not isinstance(memory_value, str) or not memory_value.strip():
+            raise EvidenceError("memory must be a nonempty directory path when specified")
+        raw_memory = path.parent / memory_value
+        if raw_memory.is_symlink():
+            raise EvidenceError("memory path cannot be a symbolic link")
+        paths["memory"] = raw_memory.resolve()
+        if paths["memory"].exists() and not paths["memory"].is_dir():
+            raise EvidenceError("memory path must be a directory")
     values = list(paths.values())
     if any(a == b or a in b.parents or b in a.parents for i, a in enumerate(values) for b in values[i+1:]):
-        raise EvidenceError("Store, queue, inbox and runs must be separate, non-nested directories")
+        raise EvidenceError("Store, queue, inbox, runs and memory must be separate, non-nested directories")
     if any(path == target or target in path.parents for target in values):
-        raise EvidenceError("Configuration must be outside managed store/queue/inbox/runs directories")
+        raise EvidenceError("Configuration must be outside managed project directories")
+    if memory_value is None:
+        paths["memory"] = None
     papers = config.get("papers")
     if not isinstance(papers, list) or not papers:
         raise EvidenceError("Project requires a nonempty papers list")

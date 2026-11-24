@@ -15,6 +15,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+from .memory import MemoryLedger, _public_note, compute_quote_hazards, validate_memory_root
 from .packets import create_packet
 from .store import EvidenceError, Store
 
@@ -82,7 +83,7 @@ class EvidenceTools:
     """Evidence retrieval with fixed roots, explicit versions and strict review checks."""
 
     def __init__(self, store_root: Path, review_root: Path, selected_versions: dict[str, str] | None = None,
-                 *, accept_independent_reading: bool = False):
+                 *, accept_independent_reading: bool = False, memory_root: Path | None = None):
         if type(accept_independent_reading) is not bool:
             raise EvidenceError("accept_independent_reading must be a boolean")
         self.accept_independent_reading = accept_independent_reading
@@ -91,6 +92,9 @@ class EvidenceTools:
         if (self.store_root == self.review_root or self.store_root in self.review_root.parents
                 or self.review_root in self.store_root.parents):
             raise EvidenceError("Review output and evidence store must be separate, non-nested directories")
+        self.memory_original_root = Path(memory_root) if memory_root is not None else None
+        self.memory_root = (validate_memory_root(memory_root, other_roots=(self.store_root, self.review_root))
+                            if memory_root is not None else None)
         self.selected_versions = dict(selected_versions or {})
         for key, version in self.selected_versions.items():
             _required(key, "selected document/source ID", 300)
@@ -105,6 +109,13 @@ class EvidenceTools:
         if self.store_root.resolve() != self.store_root:
             raise EvidenceError("Configured evidence root changed through a symlink")
         return Store(self.store_root, read_only=True)
+
+    def _memory(self):
+        if self.memory_root is None:
+            return MemoryLedger.load_snapshot(None)
+        if self.memory_original_root.is_symlink() or self.memory_root.resolve() != self.memory_root:
+            raise EvidenceError("Configured memory root changed through a symlink")
+        return MemoryLedger.load_snapshot(self.memory_root, other_roots=(self.store_root, self.review_root))
 
     def _inventory(self, store):
         # Inventory validates canonical record bytes and their indexed copies.
@@ -207,6 +218,7 @@ class EvidenceTools:
         if selected and selected != item["conversion_id"]:
             warnings.append("requested_version_differs_from_project_selection")
         resource = f"evidence://blocks/{item['conversion_id']}/{block['id']}"
+        truncated = offset > 0 or len(text) > offset + maximum
         return {"citation": item["citation"], "source_id": source["source_id"],
                 "source_sha256": source["sha256"], "document_id": source["document_id"],
                 "source": {key: source[key] for key in ("source_id", "sha256", "document_id", "role",
@@ -217,7 +229,7 @@ class EvidenceTools:
                 "locator_sha256": hashlib.sha256(_json(block["locator"]).encode()).hexdigest(),
                 "location_accuracy": block.get("location_accuracy", "unlocated"),
                 "text": text[offset:offset+maximum], "text_offset": offset, "text_characters": len(text),
-                "text_truncated": offset > 0 or len(text) > offset + maximum,
+                "text_truncated": truncated,
                 "next_text_resource_uri": (resource if maximum != MAX_TEXT else resource + f"/chunks/{offset+maximum}")
                     if len(text) > offset+maximum else None,
                 "block_resource_uri": resource,
@@ -225,6 +237,7 @@ class EvidenceTools:
                                        for page in _pages(locator)],
                 "block_issues": _issues(block.get("issues", [])),
                 "conversion_issues": _issues(item["conversion_issues"]),
+                "quote_hazards": compute_quote_hazards(block, text_truncated=len(text) > MAX_TEXT),
                 "review_status": item["review_status"], "selected_conversion_id": selected,
                 "warnings": warnings, "scientifically_verified": False,
                 "meaning": "Retrieval only; publication identity, quote-specific review and scientific support remain separate checks"}
@@ -269,7 +282,9 @@ class EvidenceTools:
         context = {"operation": "search", "query": query, "limit": limit, "document_id": document_id,
                    "conversion_id": conversion_id, "snapshot": self._snapshot(store, conversions)}
         offset, signature = self._offset(cursor, context, len(citations))
-        items, publications = [], {}
+        snap = self._memory()
+        items, publications, page_notes = [], {}, {}
+        hit_matches = []
         for citation in citations[offset:offset+limit]:
             item = store.get(citation)
             sid = item["source"]["source_id"]
@@ -281,7 +296,22 @@ class EvidenceTools:
             rendered["version_selection"] = ("explicit" if conversion_id else "project_selected"
                 if self._selection(item["source"]) else "unselected_multiple_versions"
                 if len(groups[item["source"]["document_id"]]) > 1 else "only_available_version")
+            if snap.status == "unavailable" and "memory_ledger_unavailable" not in rendered["warnings"]:
+                rendered["warnings"].append("memory_ledger_unavailable")
+            matched = snap.for_item(citation=citation, document_id=item["source"]["document_id"],
+                                    role=item["source"]["role"], block_text=item["block"]["text"], limit=3)
+            hit_matches.append(matched)
+            for note in matched:
+                if len(page_notes) < 5 or note["memory_id"] in page_notes:
+                    page_notes.setdefault(note["memory_id"], note)
             items.append(rendered)
+        if cursor is None and document_id is not None and snap.status == "ok":
+            for entry in snap.active:
+                if entry["document_id"] == document_id and entry["citation"] is None and len(page_notes) < 5:
+                    pub = _public_note(entry, match_scope="document")
+                    page_notes.setdefault(pub["memory_id"], pub)
+        for rendered, matched in zip(items, hit_matches, strict=True):
+            rendered["memory_note_ids"] = [n["memory_id"] for n in matched if n["memory_id"] in page_notes]
         ambiguous = sorted(key for key, values in groups.items() if len(values) > 1)
         return {"items": items, "returned": len(items), "total_matches": len(citations),
                 "next_cursor": self._cursor(signature, offset+len(items), len(citations)),
@@ -291,6 +321,8 @@ class EvidenceTools:
                                       "reason": "Select a specific conversion; newest is not automatically most accurate"}
                                      for key in ambiguous[:20]],
                 "version_warnings_truncated": len(ambiguous) > 20,
+                "memory_status": snap.status, "memory_head": snap.head,
+                "memory_notes": list(page_notes.values()),
                 "inventory_verification": "Canonical metadata and index only; returned hits verify original and native artifacts",
                 "scope": "Local archived full text only; no hits do not imply no relevant literature exists",
                 "scientifically_verified": False}
@@ -300,7 +332,14 @@ class EvidenceTools:
         if type(sentences) is not bool:
             raise EvidenceError("sentences must be a boolean")
         store = self._store()
-        item = self._item(store, store.get(citation))
+        snap = self._memory()
+        raw_item = store.get(citation)
+        item = self._item(store, raw_item)
+        notes = snap.for_item(citation=citation, document_id=raw_item["source"]["document_id"],
+                              role=raw_item["source"]["role"], block_text=raw_item["block"]["text"])
+        if snap.status == "unavailable" and "memory_ledger_unavailable" not in item["warnings"]:
+            item["warnings"].append("memory_ledger_unavailable")
+        item["memory"] = snap.summary_dict(notes)
         if sentences:
             if item["text_truncated"]:
                 raise EvidenceError("Block is too long to number its sentences; quote from its text instead")
@@ -310,6 +349,7 @@ class EvidenceTools:
     def check_quote(self, citation, quote=None, first_sentence=None, last_sentence=None):
         _required(citation, "citation", 300)
         store = self._store()
+        snap = self._memory()
         if first_sentence is not None or last_sentence is not None:
             if quote is not None or first_sentence is None:
                 raise EvidenceError("Give either a quote or sentence positions starting with first_sentence")
@@ -319,12 +359,17 @@ class EvidenceTools:
         checked = store.check(citation, quote, require_review=True,
                               accept_independent_reading=self.accept_independent_reading)
         item = store.get(citation)
+        notes = snap.for_quote(citation=citation, document_id=item["source"]["document_id"],
+                               role=item["source"]["role"], block_text=item["block"]["text"], quote=quote)
         return {**checked, "source_id": item["source"]["source_id"],
                 "source_sha256": item["source"]["sha256"], "conversion_id": item["conversion_id"],
                 "locator": _locator(item["block"]["locator"]),
                 "locator_sha256": hashlib.sha256(_json(item["block"]["locator"]).encode()).hexdigest(),
                 "block_issues": _issues(item["block"].get("issues", [])),
-                "conversion_issues": _issues(item["conversion_issues"])}
+                "conversion_issues": _issues(item["conversion_issues"]),
+                "quote_hazards": compute_quote_hazards(item["block"],
+                                                       text_truncated=len(item["block"]["text"]) > MAX_TEXT),
+                "memory": snap.summary_dict(notes)}
 
     def versions(self, document_id, limit=10, cursor=None):
         _required(document_id, "document_id", 300)
@@ -387,7 +432,13 @@ class EvidenceTools:
             item = store.get(f"evidence:{conversion}#{block}")
             if offset and (offset >= len(item["block"]["text"]) or offset % MAX_TEXT):
                 raise EvidenceError("Block text offset is outside a valid chunk boundary")
+            snap = self._memory()
             result = self._item(store, item, offset=offset)
+            notes = snap.for_item(citation=item["citation"], document_id=item["source"]["document_id"],
+                                  role=item["source"]["role"], block_text=item["block"]["text"])
+            if snap.status == "unavailable" and "memory_ledger_unavailable" not in result["warnings"]:
+                result["warnings"].append("memory_ledger_unavailable")
+            result["memory"] = snap.summary_dict(notes)
             return {"uri": uri, "mime_type": "application/json", "text": _json(result)}
         if parsed.netloc == "sources" and len(parts) == 3 and parts[1] == "pages":
             if not _SRC.fullmatch(parts[0]) or not re.fullmatch(r"[1-9][0-9]{0,5}", parts[2]):

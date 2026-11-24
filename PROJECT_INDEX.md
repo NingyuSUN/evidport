@@ -1,5 +1,21 @@
 # EvidPort — project index
 
+## Advisory pitfall memory, stateless quote hazards and batch triage — 2026-11-24 (Asia/Tokyo)
+
+Objective: surface known reading pitfalls (denominator shifts, direction comparators, causal
+overstatement, internal source conflicts) and text-layer hazards without altering `Store.check`
+admission verdicts or breaking Validator MCP replay comparisons, and provide offline batch triage so
+humans do not inspect conversions sentence by sentence. Work is on branch `advisory-pitfall-memory`.
+
+| Field | Scope and evidence |
+|---|---|
+| Stateless quote hazards | `compute_quote_hazards` inspects each block's character defects, line-end hyphenation and typography spans, returning `codes` and `prefer_sentence_positions` (disabled when a block exceeds the 20,000-character numbering cap). |
+| Advisory memory ledger | `MemoryLedger` stores canonical JSON `add`/`resolve` events (`records/mem_<sha256>.json`) chained by `sequence` and `previous_memory_id`, serialized on write with `OperationLock` and atomic `os.replace`. Notes anchor on sentence-hash sets (`sentence_sha256s`) and optional `related_citations`, isolate `role` (`primary` vs `supplement`), omit local `actor` on MCP export and set `citable: false`. |
+| Batch triage and import | `evidence-db scan` checks archived conversions read-only and lists sentences with OCR disagreements or character defects. `evidence-db memory import-validator` imports `BEV027`/`BEV028`/`BEV029` semantic findings from Validator reports or receipts (with `--dry-run` preview and idempotent deduplication). |
+| Protocol compatibility | Native `Store.check` keys (`admitted`, `reason`, `admission_route`, `review_status`, `review_id`) are unchanged on `evidport_evidence_check_quote`; MCP remains read-only for memory; `project.json` accepts optional non-nested `"memory"` (`None` when omitted). |
+| Code and tests | New `src/evidence_database/memory.py`, `src/evidence_database/triage.py`, `tests/test_memory.py`; updates in `workflow.py`, `cli.py`, `mcp_evidence.py`, `mcp_papers.py`, `mcp_server.py`, `README.md`. |
+| Limits | Advisory notes guide attention and do not block admission or evaluate claims; hard transcription rejections remain in `Store.review`. Local CLI actor identity is self-declared. Effect on downstream agent error rates requires a separate pre-registered benchmark arm. |
+
 ## File identity rule version 3 — 2026-11-19 (Asia/Tokyo)
 
 Objective: correct one wrong refusal and one wrong acceptance in the check that a PDF is the paper
