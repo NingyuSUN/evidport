@@ -183,6 +183,28 @@ This is off by default, never writes a review record and is always reported as
 `independent_reading`, not as human review. The page comparison was made by an AI assistant, and
 12 papers is a small sample. Details and limits: [machine verification](docs/MACHINE_VERIFICATION.md).
 
+## Advisory pitfall memory and batch triage
+
+Verbatim agreement does not prevent a reader from attributing an expansion cohort's denominator to a
+primary GWAS or overlooking a table-versus-prose discrepancy. Curators can record non-citable
+advisory reading notes in a separate append-only hash-chained ledger without altering `Store` or its
+admission verdicts, scan conversions offline for the ~0.5% of sentences with OCR or character
+defects, or import `BEV027`/`BEV028`/`BEV029` semantic findings from Validator reports:
+
+```sh
+evidence-db --db data/evidence scan
+evidence-db --db data/evidence memory --memory-db data/memory import-validator report.json --dry-run
+evidence-db --db data/evidence memory --memory-db data/memory add \
+  --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences 1-2 \
+  --related-citation 'evidence:CONVERSION_ID#OTHER_BLOCK_ID' \
+  --code numbers_denominators --actor curator --actor-kind human \
+  --note 'Check expansion cohort size here against primary GWAS sample size in OTHER_BLOCK_ID.'
+evidence-db memory --memory-db data/memory audit
+```
+
+Setting `"memory": "data/memory"` in `project.json` (non-nested with `store`, `queue`, `inbox` and
+`runs`) surfaces matching notes and stateless `quote_hazards` read-only through `evidport-mcp`.
+
 ## With BioAI Evidence Validator
 
 [BioAI Evidence Validator](https://github.com/NingyuSUN/bioai-evidence-validator) decides whether

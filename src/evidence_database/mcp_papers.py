@@ -103,7 +103,8 @@ class PaperTools:
         self.allow_network = allow_network
 
     def _roots(self):
-        for key in ("store", "queue", "inbox", "runs"):
+        extra = ("memory",) if self.config.get("memory") is not None else ()
+        for key in ("store", "queue", "inbox", "runs", *extra):
             if self.config[key].resolve() != self.config[key]:
                 raise EvidenceError("Configured project root changed; restart with a verified configuration")
             if self.config[key].exists() and not self.config[key].is_dir():
