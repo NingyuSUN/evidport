@@ -13,7 +13,7 @@ The [shared golden vectors](tests/fixtures/golden_contract_vectors_v1.json) pin 
 cases for citation syntax, PDF identity, quote admission and advisory memory. The tests
 exercise the canonical API alongside the existing suite that uses the compatibility package.
 
-Local verification on Python 3.12 passed all 532 tests (442 existing and 90 new) with the
+Local verification on Python 3.12 passed all 533 tests (442 existing and 91 new) with the
 CI warning settings. Ruff and the public-tree check passed. Both distribution archives contain
 both packages, and the source archive includes the tests and the byte-identical golden fixture.
 

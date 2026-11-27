@@ -47,6 +47,29 @@ def test_top_level_package_and_store_type_identity():
     assert evidence_database.store.EvidenceError is EvidenceError
 
 
+def test_explicit_dunder_init_import_and_runpy_keep_package_identity():
+    code = (
+        "import evidence_database, evidport, runpy, sys, warnings; "
+        "import evidence_database.__init__; "
+        "assert evidence_database is evidport; "
+        "assert sys.modules['evidence_database'] is evidport; "
+        "assert evidence_database.__init__ is sys.modules['evidport.__init__']; "
+        "warnings.simplefilter('ignore', RuntimeWarning); "
+        "ns1 = runpy.run_module('evidence_database.__init__'); "
+        "ns2 = runpy.run_module('evidence_database.__init__', run_name='__not_main__'); "
+        "assert ns1['__version__'] == ns2['__version__'] == evidport.__version__; "
+        "assert sys.modules['evidence_database'] is evidport"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True)
+    fresh_code = (
+        "import runpy, sys; "
+        "ns = runpy.run_module('evidence_database.__init__'); "
+        "import evidence_database, evidport; "
+        "assert evidence_database is evidport and ns['__version__'] == evidport.__version__"
+    )
+    subprocess.run([sys.executable, "-c", fresh_code], check=True)
+
+
 @pytest.mark.parametrize(
     "import_stmt",
     [
