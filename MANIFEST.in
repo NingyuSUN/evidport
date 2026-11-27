@@ -1,8 +1,10 @@
 include README.md LICENSE NOTICE CITATION.cff PROJECT_INDEX.md AGENTS.md uv.lock
 recursive-include docs *.md
+include docs/assets/logo.svg
 recursive-include examples *.json
 recursive-include evaluation *.json
 recursive-include tools *.py
+include tests/*.py tests/fixtures/*.json
 prune artifacts
 prune data
 prune .venv

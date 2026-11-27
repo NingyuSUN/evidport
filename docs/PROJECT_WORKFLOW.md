@@ -29,9 +29,11 @@ conversion must belong to the exact source revision and must not be failed. Ther
 automatic "latest is best" selection policy.
 
 ```sh
-evidence-db project --config data/project.json sync --fetch
-evidence-db project --config data/project.json status
+evidport project --config data/project.json sync --fetch
+evidport project --config data/project.json status
 ```
+
+The backward-compatible `evidence-db` command accepts the same arguments.
 
 Sync registers declared candidates, optionally attempts free PDF locations, checks explicit
 files, imports matching inbox files and parses acquired originals. `--no-parse` defers new
@@ -59,11 +61,11 @@ is not implemented; a successful older OCR run is not an automatic identity appr
 ## Individual acquisition commands
 
 ```sh
-evidence-db --db data/evidence papers --queue data/acquisition discover --provider europepmc --query 'endometrial receptivity' --max-results 100
-evidence-db --db data/evidence papers --queue data/acquisition resolve --doi 10.1126/science.aay6690
-evidence-db --db data/evidence papers --queue data/acquisition fetch --all --parse
-evidence-db --db data/evidence papers --queue data/acquisition pending --out artifacts/pending-001
-evidence-db --db data/evidence papers --queue data/acquisition import-pdf --paper PAPER_ID --pdf paper.pdf --parse
+evidport --db data/evidence papers --queue data/acquisition discover --provider europepmc --query 'endometrial receptivity' --max-results 100
+evidport --db data/evidence papers --queue data/acquisition resolve --doi 10.1126/science.aay6690
+evidport --db data/evidence papers --queue data/acquisition fetch --all --parse
+evidport --db data/evidence papers --queue data/acquisition pending --out artifacts/pending-001
+evidport --db data/evidence papers --queue data/acquisition import-pdf --paper PAPER_ID --pdf paper.pdf --parse
 ```
 
 Europe PMC and Crossref supply metadata; DOI resolution may add available PDFs from the PMC

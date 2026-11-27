@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "local-evidence-database"
+name = "evidport"
 version = "0.1.0"
 description = "Versioned local evidence with source locators and explicit review gates"
 readme = "README.md"
@@ -24,8 +24,9 @@ Documentation = "https://github.com/NingyuSUN/evidport/blob/main/docs/MCP_USAGE.
 Issues = "https://github.com/NingyuSUN/evidport/issues"
 
 [project.scripts]
-evidence-db = "evidence_database.cli:main"
-evidport-mcp = "evidence_database.mcp_server:main"
+evidport = "evidport.cli:main"
+evidence-db = "evidport.cli:main"
+evidport-mcp = "evidport.mcp_server:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

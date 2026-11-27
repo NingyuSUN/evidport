@@ -1,3 +1,3 @@
-from .cli import main
+from evidport.cli import main
 
 raise SystemExit(main())

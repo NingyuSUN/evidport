@@ -60,9 +60,9 @@ engine can run elsewhere, for example `["ssh", "ocr-host", "tesseract"]` or
   `human_review`, keeps the earlier behaviour exactly.
 
 Papers converted before a command was configured are extracted again as a new version on the
-next `project sync` or `evidport_papers_convert`; the earlier version and its reviews are kept.
-Outside a project, set `EVIDPORT_OCR_COMMAND` to a JSON list for `convert`, and pass
-`--accept-independent-reading` to `check`.
+next `evidport project sync` or `evidport_papers_convert`. The earlier version and its reviews are kept.
+Outside a project, set `EVIDPORT_OCR_COMMAND` to a JSON list for `evidport convert`, and pass
+`--accept-independent-reading` to `evidport check`.
 
 ## What a result says
 

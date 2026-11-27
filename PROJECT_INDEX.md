@@ -1,5 +1,22 @@
 # EvidPort — project index
 
+## Unified EvidPort naming and shared contract vectors — 2026-11-27 (Asia/Tokyo)
+
+The distribution is declared as `name = "evidport"`. The implementation lives in
+`src/evidport/`, and the compatibility shim in `src/evidence_database/` exposes the same
+module objects. Both the canonical `evidport` CLI and the supported `evidence-db` alias
+run `evidport.cli:main`. The `evidport-mcp` script runs `evidport.mcp_server:main`.
+Existing `python -m evidence_database` and `python -m evidence_database.mcp_server` commands
+also work.
+
+The [shared golden vectors](tests/fixtures/golden_contract_vectors_v1.json) pin synthetic
+cases for citation syntax, PDF identity, quote admission and advisory memory. The tests
+exercise the canonical API alongside the existing suite that uses the compatibility package.
+
+Local verification on Python 3.12 passed all 508 tests (442 existing and 66 new) with the
+CI warning settings. Ruff and the public-tree check passed. Both distribution archives contain
+both packages, and the source archive includes the tests and the byte-identical golden fixture.
+
 ## Advisory pitfall memory, stateless quote hazards and batch triage — 2026-11-24 (Asia/Tokyo)
 
 Objective: surface known reading pitfalls (denominator shifts, direction comparators, causal

@@ -1,7 +1,8 @@
 # Evidence-reading rules for agents
 
-Use the existing CLI/Python API or the [local MCP interface](MCP_USAGE.md) to retrieve evidence
-with its original, extraction version, location and warnings.
+Use the `evidport` CLI, the `evidport` Python package or the local MCP server to retrieve
+evidence with its original, extraction version, location and warnings. Existing agents can
+keep using the `evidence-db` CLI and `evidence_database` imports. See the [MCP guide](MCP_USAGE.md).
 
 1. Check publication and acquisition status before searching full text. A DOI-only record does
    not provide an excerpt, citation or page number. Missing files remain download tasks; files

@@ -21,8 +21,10 @@ queue, inbox and run directories resolve relative to the configuration file. See
 The MCP client launches this command as a subprocess:
 
 ```sh
-python -m evidence_database.mcp_server --project-config examples/project.json
+python -m evidport.mcp_server --project-config examples/project.json
 ```
+
+Existing clients can keep using `python -m evidence_database.mcp_server` with the same arguments.
 
 The server is **offline by default**. Add `--allow-network` at startup to enable the existing
 metadata and free-PDF providers. Tool calls cannot enable network access. Stdout carries MCP

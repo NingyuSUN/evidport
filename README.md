@@ -53,7 +53,7 @@ quotation.
   text next to the rendered page.
 - **A real admission gate.** A quotation is admitted only after a recorded human original-page
   review or, if you turn it on, when two independent readings of the page agree.
-- **Three ways in.** Python API, the `evidence-db` CLI, and an optional local MCP server for AI
+- **Three ways in.** Python API, the `evidport` CLI, and an optional local MCP server for AI
   clients. All three share the same checks.
 - **Local and offline by default.** No model API and no GPU. Network acquisition is an explicit switch.
 
@@ -81,11 +81,16 @@ cd evidport
 python -m pip install -e '.[pdf]'
 ```
 
+The distribution, Python package and CLI are all named `evidport`. Run the CLI as
+`evidport` or `python -m evidport`. Existing scripts can keep using the `evidence-db`
+command and `evidence_database` imports. Both package names resolve to the same
+implementation modules.
+
 Edit [examples/project.json](examples/project.json) to list your papers, then fetch and extract:
 
 ```sh
-evidence-db project --config examples/project.json sync --fetch
-evidence-db project --config examples/project.json status
+evidport project --config examples/project.json sync --fetch
+evidport project --config examples/project.json status
 ```
 
 Each run writes a receipt and a pending list (CSV, TSV and JSON) of papers that could not be
@@ -95,11 +100,11 @@ again without `--fetch`. Unknown files stay untouched.
 Find a passage and check a quotation against it:
 
 ```sh
-evidence-db --db data/evidence search 'sample size'
-evidence-db --db data/evidence show  --citation 'evidence:CONVERSION_ID#BLOCK_ID'
-evidence-db --db data/evidence check --citation 'evidence:CONVERSION_ID#BLOCK_ID' --quote 'Exact quotation'
-evidence-db --db data/evidence show  --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences
-evidence-db --db data/evidence check --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences 2-3
+evidport --db data/evidence search 'sample size'
+evidport --db data/evidence show  --citation 'evidence:CONVERSION_ID#BLOCK_ID'
+evidport --db data/evidence check --citation 'evidence:CONVERSION_ID#BLOCK_ID' --quote 'Exact quotation'
+evidport --db data/evidence show  --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences
+evidport --db data/evidence check --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences 2-3
 ```
 
 The last two take the quotation from the stored text by sentence position, so nothing typed can
@@ -114,13 +119,14 @@ corresponds to, if there is exactly one such place.
  "review_id": null, "scientifically_verified": false}
 ```
 
-`evidence-db ... packet` builds the material for a human review; `check --inspect` tests text
+`evidport ... packet` builds the material for a human review; `check --inspect` tests text
 presence only and never admits evidence. See [Project workflow](docs/PROJECT_WORKFLOW.md).
 
 ## Use it from an AI client
 
 The optional MCP server exposes the same workflow to Claude, Codex or any MCP client as a local
-stdio subprocess.
+stdio subprocess. Launch it with `evidport-mcp` or `python -m evidport.mcp_server`.
+Existing clients can keep using `python -m evidence_database.mcp_server`.
 
 ```sh
 python -m pip install -e '.[mcp,pdf]'
@@ -133,7 +139,7 @@ evidport-mcp --project-config examples/project.json
     "evidport": {
       "type": "stdio",
       "command": "python",
-      "args": ["-m", "evidence_database.mcp_server", "--project-config", "examples/project.json"],
+      "args": ["-m", "evidport.mcp_server", "--project-config", "examples/project.json"],
       "env": {"PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
     }
   }
@@ -192,14 +198,14 @@ admission verdicts, scan conversions offline for the ~0.5% of sentences with OCR
 defects, or import `BEV027`/`BEV028`/`BEV029` semantic findings from Validator reports:
 
 ```sh
-evidence-db --db data/evidence scan
-evidence-db --db data/evidence memory --memory-db data/memory import-validator report.json --dry-run
-evidence-db --db data/evidence memory --memory-db data/memory add \
+evidport --db data/evidence scan
+evidport --db data/evidence memory --memory-db data/memory import-validator report.json --dry-run
+evidport --db data/evidence memory --memory-db data/memory add \
   --citation 'evidence:CONVERSION_ID#BLOCK_ID' --sentences 1-2 \
   --related-citation 'evidence:CONVERSION_ID#OTHER_BLOCK_ID' \
   --code numbers_denominators --actor curator --actor-kind human \
   --note 'Check expansion cohort size here against primary GWAS sample size in OTHER_BLOCK_ID.'
-evidence-db memory --memory-db data/memory audit
+evidport memory --memory-db data/memory audit
 ```
 
 Setting `"memory": "data/memory"` in `project.json` (non-nested with `store`, `queue`, `inbox` and
@@ -232,16 +238,13 @@ disagreements are rejected rather than trusted. See
 | [Machine verification](docs/MACHINE_VERIFICATION.md) | The second reading, blocking reasons, measured accuracy |
 | [Project index](PROJECT_INDEX.md) | Current status, validation records and history |
 
-For compatibility the distribution is named `local-evidence-database`, the Python module
-`evidence_database` and the CLI `evidence-db`.
-
 ## Development
 
 ```sh
 python -m pip install -e '.[pdf,mcp,dev]'
 python -m pytest
 python -m ruff check src tests
-evidence-db --db data/evidence audit
+evidport --db data/evidence audit
 ```
 
 Tests cover synthetic identity mistakes, corrupted artifacts, stale versions, review and
