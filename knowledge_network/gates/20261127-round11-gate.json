@@ -1,0 +1,225 @@
+{
+  "gate_id": "g20261127T065905-38ab",
+  "overall": "accepted_with_dissent",
+  "evidence_status": "none",
+  "rework_rounds": 1,
+  "evidence": {
+    "evidence_status": "none",
+    "checks": [],
+    "findings": []
+  },
+  "evidence_checks": [],
+  "panel": {
+    "gate_id": "g20261127T065905-541c",
+    "verdict": "accept_with_dissent",
+    "note": "2 of 3 reviewers accepted (claude, gemini [did the work]); dissent from codex",
+    "panel_mode": "all",
+    "executor": "gemini",
+    "rework_rounds": 1,
+    "quorum": 2,
+    "accept_count": 2,
+    "independent_accept": true,
+    "verdicts": {
+      "claude": "accept",
+      "codex": "revise",
+      "gemini": "accept"
+    },
+    "unusable": {},
+    "blocking_findings": [
+      {
+        "severity": "blocking",
+        "channel": "codex",
+        "issue": "[codex] After `runpy.run_module('evidence_database.acquisition', run_name='evidport', alter_sys=True)`, importing `EvidenceError` first from `evidence_database.store` and then from `evidport.store` yields two distinct classes. An exception raised with one class bypasses a handler for the other."
+      },
+      {
+        "severity": "blocking",
+        "channel": "codex",
+        "issue": "[codex] In a fresh interpreter with `sys.argv = ['evidence_database', '--help']`, `runpy.run_module('evidence_database', run_name='evidport', alter_sys=True)` raises `ModuleNotFoundError`. The absolute import in `src/evidport/__main__.py` looks for `evidport.cli` on the temporary module that runpy installed under `evidport`."
+      }
+    ],
+    "minor_findings": [
+      {
+        "severity": "minor",
+        "channel": "claude",
+        "issue": "[claude] I did not run the commands myself. The pass count (533), ruff, check_public_tree.py and the hash match are taken from the verbatim outputs in the packet. tests/test_golden_contract_vectors.py:26-27 does assert the fixture's SHA-256 equals c177b91e…0721d2a, so a passing suite would confirm criterion 3."
+      },
+      {
+        "severity": "minor",
+        "channel": "claude",
+        "issue": "[claude] src/evidport/__init__.py:185-204 (_install_compat) sets sys.modules['evidence_database'] to the evidport module and adds _EvidPortCompatFinder at the front of the import search path. Before it does, it checks that __name__ and __spec__.name are 'evidport' and that the module is a package, so a runpy re-execution under another name cannot replace the real module. tests/test_unified_naming.py:50-76 covers `import evidence_database.__init__`, runpy.run_module on both names with alter_sys=True, runpy.run_path and importlib.reload."
+      },
+      {
+        "severity": "minor",
+        "channel": "claude",
+        "issue": "[claude] runpy.run_module('evidence_database.__init__' or 'evidport.__init__', alter_sys=True) still prints RuntimeWarnings ('found in sys.modules ... prior to execution'). The tests hide these with warnings.simplefilter('ignore', RuntimeWarning) rather than removing them. Identity is preserved, but anyone running with -W error::RuntimeWarning on the `__init__` runpy path would get a failure. The fresh-interpreter `__main__` paths are tested under -W error and pass."
+      },
+      {
+        "severity": "minor",
+        "channel": "claude",
+        "issue": "[claude] The 18 files under src/evidence_database/*.py now only forward to evidport. Once evidport has been imported, the finder handles evidence_database.* imports, so these files only run as a fallback. They do have a working `__main__` path (for example src/evidence_database/cli.py:8-9), and test_python_module_help checks `-m evidence_database.cli` and `-m evidence_database.mcp_server`."
+      },
+      {
+        "severity": "minor",
+        "channel": "claude",
+        "issue": "[claude] The review packet itself is cut off partway through the src/evidence_database/adapters.py diff, so its code diff is incomplete. I compensated by reading the files in the working tree (HEAD eaa50a9)."
+      },
+      {
+        "severity": "minor",
+        "channel": "gemini",
+        "issue": "[gemini] src/evidport/__init__.py:139-156 stores _EvidPortCompatFinder._active on the shared finder instance rather than threading.local(), so concurrent unlocked importlib.util.find_spec('evidence_database.<submod>') calls across threads could transiently bypass _AliasShimLoader even though standard import statements remain serialized by Python's per-module import lock."
+      }
+    ],
+    "dissenting_reviews": [
+      {
+        "channel": "codex",
+        "model": "gpt-6.2-astra",
+        "effort": "high",
+        "independent": true,
+        "verdict": "revise",
+        "summary": "The fixture hash matches, Ruff and the public-tree check pass, and I reproduced 54 naming-test passes from the reported 533-test suite. Two fresh-interpreter checks expose backward-compatibility failures with `run_name='evidport'` and `alter_sys=True`.",
+        "findings": [
+          {
+            "severity": "blocking",
+            "issue": "After `runpy.run_module('evidence_database.acquisition', run_name='evidport', alter_sys=True)`, importing `EvidenceError` first from `evidence_database.store` and then from `evidport.store` yields two distinct classes. An exception raised with one class bypasses a handler for the other."
+          },
+          {
+            "severity": "blocking",
+            "issue": "In a fresh interpreter with `sys.argv = ['evidence_database', '--help']`, `runpy.run_module('evidence_database', run_name='evidport', alter_sys=True)` raises `ModuleNotFoundError`. The absolute import in `src/evidport/__main__.py` looks for `evidport.cli` on the temporary module that runpy installed under `evidport`."
+          }
+        ],
+        "error": "",
+        "seconds": 127.55,
+        "session_id": "01a21bcc-f230-7111-a21e-532feff13374",
+        "cost_usd": null
+      }
+    ],
+    "reviews": [
+      {
+        "channel": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "independent": true,
+        "verdict": "accept",
+        "summary": "The work meets all three acceptance criteria. I read the code directly and it matches the verbatim outputs in the packet: the canonical `evidport` package and its CLI entry points, the import-identity shims and finder, tests covering every required compatibility path, and a test that pins the fixture's SHA-256. I could not re-run pytest, ruff, check_public_tree.py or sha256sum myself (read-only, no shell), so the 533-pass result and the hash match rest on the packet's verbatim outputs.",
+        "findings": [
+          {
+            "severity": "minor",
+            "issue": "I did not run the commands myself. The pass count (533), ruff, check_public_tree.py and the hash match are taken from the verbatim outputs in the packet. tests/test_golden_contract_vectors.py:26-27 does assert the fixture's SHA-256 equals c177b91e…0721d2a, so a passing suite would confirm criterion 3."
+          },
+          {
+            "severity": "minor",
+            "issue": "src/evidport/__init__.py:185-204 (_install_compat) sets sys.modules['evidence_database'] to the evidport module and adds _EvidPortCompatFinder at the front of the import search path. Before it does, it checks that __name__ and __spec__.name are 'evidport' and that the module is a package, so a runpy re-execution under another name cannot replace the real module. tests/test_unified_naming.py:50-76 covers `import evidence_database.__init__`, runpy.run_module on both names with alter_sys=True, runpy.run_path and importlib.reload."
+          },
+          {
+            "severity": "minor",
+            "issue": "runpy.run_module('evidence_database.__init__' or 'evidport.__init__', alter_sys=True) still prints RuntimeWarnings ('found in sys.modules ... prior to execution'). The tests hide these with warnings.simplefilter('ignore', RuntimeWarning) rather than removing them. Identity is preserved, but anyone running with -W error::RuntimeWarning on the `__init__` runpy path would get a failure. The fresh-interpreter `__main__` paths are tested under -W error and pass."
+          },
+          {
+            "severity": "minor",
+            "issue": "The 18 files under src/evidence_database/*.py now only forward to evidport. Once evidport has been imported, the finder handles evidence_database.* imports, so these files only run as a fallback. They do have a working `__main__` path (for example src/evidence_database/cli.py:8-9), and test_python_module_help checks `-m evidence_database.cli` and `-m evidence_database.mcp_server`."
+          },
+          {
+            "severity": "minor",
+            "issue": "The review packet itself is cut off partway through the src/evidence_database/adapters.py diff, so its code diff is incomplete. I compensated by reading the files in the working tree (HEAD eaa50a9)."
+          }
+        ],
+        "error": "",
+        "seconds": 28.93,
+        "session_id": "6b689591-f69f-4f47-828b-d93061061f70",
+        "cost_usd": 0.4154716
+      },
+      {
+        "channel": "codex",
+        "model": "gpt-6.2-astra",
+        "effort": "high",
+        "independent": true,
+        "verdict": "revise",
+        "summary": "The fixture hash matches, Ruff and the public-tree check pass, and I reproduced 54 naming-test passes from the reported 533-test suite. Two fresh-interpreter checks expose backward-compatibility failures with `run_name='evidport'` and `alter_sys=True`.",
+        "findings": [
+          {
+            "severity": "blocking",
+            "issue": "After `runpy.run_module('evidence_database.acquisition', run_name='evidport', alter_sys=True)`, importing `EvidenceError` first from `evidence_database.store` and then from `evidport.store` yields two distinct classes. An exception raised with one class bypasses a handler for the other."
+          },
+          {
+            "severity": "blocking",
+            "issue": "In a fresh interpreter with `sys.argv = ['evidence_database', '--help']`, `runpy.run_module('evidence_database', run_name='evidport', alter_sys=True)` raises `ModuleNotFoundError`. The absolute import in `src/evidport/__main__.py` looks for `evidport.cli` on the temporary module that runpy installed under `evidport`."
+          }
+        ],
+        "error": "",
+        "seconds": 127.55,
+        "session_id": "01a21bcc-f230-7111-a21e-532feff13374",
+        "cost_usd": null
+      },
+      {
+        "channel": "gemini",
+        "model": "gemini-4-carbon",
+        "effort": "high",
+        "independent": false,
+        "verdict": "accept",
+        "summary": "Source inspection at HEAD eaa50a909c4d83d572495c0890a04f7c6d1327eb confirms unified evidport package/CLI metadata, complete module-identity and runpy(alter_sys=True) compatibility across all 18 submodules plus __init__/__main__, and 91 new parametrized tests (56 in test_unified_naming.py and 35 in test_golden_contract_vectors.py, matching 442 + 91 = 533) pinning golden_contract_vectors_v1.json to SHA-256 c177b91e7037f7e6562671a7a400da91f6bcd61a262cc23d90831252e0721d2a. Live pytest/ruff/check_public_tree.py execution and the raw SHA-256 digest of the 577-line fixture could not be recomputed in this no-shell session and rely on the recorded Stage-4 verifier outputs.",
+        "findings": [
+          {
+            "issue": "src/evidport/__init__.py:139-156 stores _EvidPortCompatFinder._active on the shared finder instance rather than threading.local(), so concurrent unlocked importlib.util.find_spec('evidence_database.<submod>') calls across threads could transiently bypass _AliasShimLoader even though standard import statements remain serialized by Python's per-module import lock.",
+            "severity": "minor"
+          }
+        ],
+        "error": "",
+        "seconds": 452.02,
+        "session_id": "fcefa538-762a-4317-b7e5-d2fef581e32c",
+        "cost_usd": null
+      }
+    ],
+    "out_dir": "knowledge_network/gates"
+  },
+  "blocking_findings": [
+    {
+      "severity": "blocking",
+      "channel": "codex",
+      "issue": "[codex] After `runpy.run_module('evidence_database.acquisition', run_name='evidport', alter_sys=True)`, importing `EvidenceError` first from `evidence_database.store` and then from `evidport.store` yields two distinct classes. An exception raised with one class bypasses a handler for the other."
+    },
+    {
+      "severity": "blocking",
+      "channel": "codex",
+      "issue": "[codex] In a fresh interpreter with `sys.argv = ['evidence_database', '--help']`, `runpy.run_module('evidence_database', run_name='evidport', alter_sys=True)` raises `ModuleNotFoundError`. The absolute import in `src/evidport/__main__.py` looks for `evidport.cli` on the temporary module that runpy installed under `evidport`."
+    }
+  ],
+  "minor_findings": [
+    {
+      "severity": "minor",
+      "channel": "claude",
+      "issue": "[claude] I did not run the commands myself. The pass count (533), ruff, check_public_tree.py and the hash match are taken from the verbatim outputs in the packet. tests/test_golden_contract_vectors.py:26-27 does assert the fixture's SHA-256 equals c177b91e…0721d2a, so a passing suite would confirm criterion 3."
+    },
+    {
+      "severity": "minor",
+      "channel": "claude",
+      "issue": "[claude] src/evidport/__init__.py:185-204 (_install_compat) sets sys.modules['evidence_database'] to the evidport module and adds _EvidPortCompatFinder at the front of the import search path. Before it does, it checks that __name__ and __spec__.name are 'evidport' and that the module is a package, so a runpy re-execution under another name cannot replace the real module. tests/test_unified_naming.py:50-76 covers `import evidence_database.__init__`, runpy.run_module on both names with alter_sys=True, runpy.run_path and importlib.reload."
+    },
+    {
+      "severity": "minor",
+      "channel": "claude",
+      "issue": "[claude] runpy.run_module('evidence_database.__init__' or 'evidport.__init__', alter_sys=True) still prints RuntimeWarnings ('found in sys.modules ... prior to execution'). The tests hide these with warnings.simplefilter('ignore', RuntimeWarning) rather than removing them. Identity is preserved, but anyone running with -W error::RuntimeWarning on the `__init__` runpy path would get a failure. The fresh-interpreter `__main__` paths are tested under -W error and pass."
+    },
+    {
+      "severity": "minor",
+      "channel": "claude",
+      "issue": "[claude] The 18 files under src/evidence_database/*.py now only forward to evidport. Once evidport has been imported, the finder handles evidence_database.* imports, so these files only run as a fallback. They do have a working `__main__` path (for example src/evidence_database/cli.py:8-9), and test_python_module_help checks `-m evidence_database.cli` and `-m evidence_database.mcp_server`."
+    },
+    {
+      "severity": "minor",
+      "channel": "claude",
+      "issue": "[claude] The review packet itself is cut off partway through the src/evidence_database/adapters.py diff, so its code diff is incomplete. I compensated by reading the files in the working tree (HEAD eaa50a9)."
+    },
+    {
+      "severity": "minor",
+      "channel": "gemini",
+      "issue": "[gemini] src/evidport/__init__.py:139-156 stores _EvidPortCompatFinder._active on the shared finder instance rather than threading.local(), so concurrent unlocked importlib.util.find_spec('evidence_database.<submod>') calls across threads could transiently bypass _AliasShimLoader even though standard import statements remain serialized by Python's per-module import lock."
+    }
+  ],
+  "out_dir": "knowledge_network/gates",
+  "swarm_triage": {
+    "action": "accept_with_minor_notes",
+    "stage": 5,
+    "reason": "Panel returned 'accept_with_dissent'; log non-blocking/dissenting notes in Stage-6 round record."
+  },
+  "ro_exit_code": 0
+}

@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "project": "evidport",
+  "round_id": "20261127-round11-evidport-closeout",
+  "date": "2026-11-27T07:50:32.594695+00:00",
+  "question": "Can EvidPort unify its package/CLI naming on `evidport` with 100% `evidence_database` shim identity, shared v1 golden contract vectors, and quantified OCR-hazard holdback reduction?",
+  "summary": "Fast-forward merged `feat/evidport-unified-naming` (`eaa50a9`) onto local `main` (533/533 pytest, Ruff, and public-tree check passed; Stage-5 3-vendor gate `accepted_with_dissent` 2/3) and linked Track-A real-PDF OCR hazard evaluation (`4,549` sentences across 11 biomedical PDFs) and P3 (`N=48`) Stage-4 benchmark receipts. Remote push deferred pending user confirmation.",
+  "decisions": [
+    {
+      "title": "Unify canonical distribution on `evidport` with `_EvidPortCompatFinder` / `_DualNameLoader` shims",
+      "summary": "Expose `evidport` and `evidport-mcp` as canonical entry points while preserving `sys.modules['evidence_database'] is evidport` across submodule imports, explicit `__init__` imports, and `runpy.run_module(..., alter_sys=True)`.",
+      "status": "PROPOSED",
+      "evidence": [
+        {
+          "kind": "file",
+          "path": "tests/fixtures/golden_contract_vectors_v1.json",
+          "locator": "golden_contract_vectors_v1",
+          "sha256": "c177b91e7037f7e6562671a7a400da91f6bcd61a262cc23d90831252e0721d2a"
+        },
+        {
+          "kind": "file",
+          "path": "PROJECT_INDEX.md",
+          "locator": "Unified EvidPort naming and shared contract vectors",
+          "sha256": "cc5cfb33b5a54d825858deb83be4d586cbde9f773b19eac89f0212978566fa8e"
+        },
+        {
+          "kind": "file",
+          "path": "../evidport-semantic-ocr-audit-20261127/ocr_hazard_experiment/ocr_hazard_metrics.json",
+          "locator": "policy_summary",
+          "sha256": "b8c7b3eaee43e46d4a608ee5e0211ed552abccbe2440cceea81f9221e2ea14ca"
+        },
+        {
+          "kind": "file",
+          "path": "../p3-ablation-20261127/p3_results.json",
+          "locator": "fixed_panel.arm3",
+          "sha256": "f20a12445654ea622a4a7b019c4292c22a9baed107588a70c1594e73c0a2bf2d"
+        },
+        {
+          "kind": "file",
+          "path": "knowledge_network/gates/20261127-round11-gate.json",
+          "locator": "gate_receipt",
+          "sha256": "61d960e9310a190f80ce5c91b4ef390caf4a58e2b3a6276b8004ce41d11ca8dc"
+        }
+      ],
+      "supersedes": [],
+      "resolves": []
+    },
+    {
+      "title": "Adopt hybrid position-quoted hazard gating guidance from Track-A 11-PDF evaluation",
+      "summary": "`compute_quote_hazards` + position quoting reduces clean-PDF human holdback from 27.72% (blanket dual-track OCR) to 11.91% (-57.02% relative; 13.81% / -50.20% in hybrid mode) while catching 48/48 (100%) transcription/hyphenation defects.",
+      "status": "PROPOSED",
+      "evidence": [
+        {
+          "kind": "file",
+          "path": "tests/fixtures/golden_contract_vectors_v1.json",
+          "locator": "golden_contract_vectors_v1",
+          "sha256": "c177b91e7037f7e6562671a7a400da91f6bcd61a262cc23d90831252e0721d2a"
+        },
+        {
+          "kind": "file",
+          "path": "PROJECT_INDEX.md",
+          "locator": "Unified EvidPort naming and shared contract vectors",
+          "sha256": "cc5cfb33b5a54d825858deb83be4d586cbde9f773b19eac89f0212978566fa8e"
+        },
+        {
+          "kind": "file",
+          "path": "../evidport-semantic-ocr-audit-20261127/ocr_hazard_experiment/ocr_hazard_metrics.json",
+          "locator": "policy_summary",
+          "sha256": "b8c7b3eaee43e46d4a608ee5e0211ed552abccbe2440cceea81f9221e2ea14ca"
+        },
+        {
+          "kind": "file",
+          "path": "../p3-ablation-20261127/p3_results.json",
+          "locator": "fixed_panel.arm3",
+          "sha256": "f20a12445654ea622a4a7b019c4292c22a9baed107588a70c1594e73c0a2bf2d"
+        },
+        {
+          "kind": "file",
+          "path": "knowledge_network/gates/20261127-round11-gate.json",
+          "locator": "gate_receipt",
+          "sha256": "61d960e9310a190f80ce5c91b4ef390caf4a58e2b3a6276b8004ce41d11ca8dc"
+        }
+      ],
+      "supersedes": [],
+      "resolves": []
+    }
+  ],
+  "results": [
+    {
+      "title": "Stage-4 & Stage-5 verification on `evidport` (`eaa50a9`)",
+      "summary": "533 passed (0 warnings under `-W error::ResourceWarning`), byte-identical `golden_contract_vectors_v1.json` (`c177b91e...0721d2a`), and Stage-5 3-vendor blind gate `accepted_with_dissent` (Claude + Gemini accept; Codex `runpy` submodule edge case logged as open dissent).",
+      "status": "PROPOSED",
+      "evidence": [
+        {
+          "kind": "file",
+          "path": "tests/fixtures/golden_contract_vectors_v1.json",
+          "locator": "golden_contract_vectors_v1",
+          "sha256": "c177b91e7037f7e6562671a7a400da91f6bcd61a262cc23d90831252e0721d2a"
+        },
+        {
+          "kind": "file",
+          "path": "PROJECT_INDEX.md",
+          "locator": "Unified EvidPort naming and shared contract vectors",
+          "sha256": "cc5cfb33b5a54d825858deb83be4d586cbde9f773b19eac89f0212978566fa8e"
+        },
+        {
+          "kind": "file",
+          "path": "../evidport-semantic-ocr-audit-20261127/ocr_hazard_experiment/ocr_hazard_metrics.json",
+          "locator": "policy_summary",
+          "sha256": "b8c7b3eaee43e46d4a608ee5e0211ed552abccbe2440cceea81f9221e2ea14ca"
+        },
+        {
+          "kind": "file",
+          "path": "../p3-ablation-20261127/p3_results.json",
+          "locator": "fixed_panel.arm3",
+          "sha256": "f20a12445654ea622a4a7b019c4292c22a9baed107588a70c1594e73c0a2bf2d"
+        },
+        {
+          "kind": "file",
+          "path": "knowledge_network/gates/20261127-round11-gate.json",
+          "locator": "gate_receipt",
+          "sha256": "61d960e9310a190f80ce5c91b4ef390caf4a58e2b3a6276b8004ce41d11ca8dc"
+        }
+      ],
+      "supersedes": [],
+      "resolves": []
+    },
+    {
+      "title": "Track-A OCR hazard experiment on 11 real PDFs (`4,549` sentences)",
+      "summary": "Blanket OCR admitted 72.28% (27.72% holdback), Hybrid Hazard+OCR admitted 86.19% (13.81% holdback), and Position-Quoted Hazard admitted 88.09% (11.91% holdback), all retaining 48/48 (100%) defect sensitivity.",
+      "status": "PROPOSED",
+      "evidence": [
+        {
+          "kind": "file",
+          "path": "tests/fixtures/golden_contract_vectors_v1.json",
+          "locator": "golden_contract_vectors_v1",
+          "sha256": "c177b91e7037f7e6562671a7a400da91f6bcd61a262cc23d90831252e0721d2a"
+        },
+        {
+          "kind": "file",
+          "path": "PROJECT_INDEX.md",
+          "locator": "Unified EvidPort naming and shared contract vectors",
+          "sha256": "cc5cfb33b5a54d825858deb83be4d586cbde9f773b19eac89f0212978566fa8e"
+        },
+        {
+          "kind": "file",
+          "path": "../evidport-semantic-ocr-audit-20261127/ocr_hazard_experiment/ocr_hazard_metrics.json",
+          "locator": "policy_summary",
+          "sha256": "b8c7b3eaee43e46d4a608ee5e0211ed552abccbe2440cceea81f9221e2ea14ca"
+        },
+        {
+          "kind": "file",
+          "path": "../p3-ablation-20261127/p3_results.json",
+          "locator": "fixed_panel.arm3",
+          "sha256": "f20a12445654ea622a4a7b019c4292c22a9baed107588a70c1594e73c0a2bf2d"
+        },
+        {
+          "kind": "file",
+          "path": "knowledge_network/gates/20261127-round11-gate.json",
+          "locator": "gate_receipt",
+          "sha256": "61d960e9310a190f80ce5c91b4ef390caf4a58e2b3a6276b8004ce41d11ca8dc"
+        }
+      ],
+      "supersedes": [],
+      "resolves": []
+    }
+  ],
+  "unresolved": [
+    {
+      "title": "Panel dissent (codex #1): [codex] After `runpy.run_module('evidence_database.acquisition', run_name='evidport', alter_sys=True)`, importing `Evide",
+      "summary": "Accepted with recorded dissent during Stage-5 arbitration. Full finding: [codex] After `runpy.run_module('evidence_database.acquisition', run_name='evidport', alter_sys=True)`, importing `EvidenceError` first from `evidence_database.store` and then from `evidport.store` yields two distinct classes. An exception raised with one class bypasses a handler for the other.",
+      "status": "OPEN",
+      "action": "Evaluate dissenting reviewer objection on next iteration.",
+      "acceptance": "Verify resolution against Stage-4 checks and targeted reviewer re-check.",
+      "evidence": [
+        {
+          "kind": "file",
+          "path": "knowledge_network/gates/20261127-round11-gate.json",
+          "locator": "gate_receipt",
+          "sha256": "61d960e9310a190f80ce5c91b4ef390caf4a58e2b3a6276b8004ce41d11ca8dc"
+        }
+      ],
+      "supersedes": [],
+      "resolves": []
+    },
+    {
+      "title": "Panel dissent (codex #2): [codex] In a fresh interpreter with `sys.argv = ['evidence_database', '--help']`, `runpy.run_module('evidence_database',",
+      "summary": "Accepted with recorded dissent during Stage-5 arbitration. Full finding: [codex] In a fresh interpreter with `sys.argv = ['evidence_database', '--help']`, `runpy.run_module('evidence_database', run_name='evidport', alter_sys=True)` raises `ModuleNotFoundError`. The absolute import in `src/evidport/__main__.py` looks for `evidport.cli` on the temporary module that runpy installed under `evidport`.",
+      "status": "OPEN",
+      "action": "Evaluate dissenting reviewer objection on next iteration.",
+      "acceptance": "Verify resolution against Stage-4 checks and targeted reviewer re-check.",
+      "evidence": [
+        {
+          "kind": "file",
+          "path": "knowledge_network/gates/20261127-round11-gate.json",
+          "locator": "gate_receipt",
+          "sha256": "61d960e9310a190f80ce5c91b4ef390caf4a58e2b3a6276b8004ce41d11ca8dc"
+        }
+      ],
+      "supersedes": [],
+      "resolves": []
+    }
+  ]
+}
