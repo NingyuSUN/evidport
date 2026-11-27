@@ -49,7 +49,7 @@ def test_top_level_package_and_store_type_identity():
 
 def test_explicit_dunder_init_import_and_runpy_keep_package_identity():
     code = (
-        "import evidence_database, evidport, runpy, sys, warnings; "
+        "import evidence_database, evidport, importlib, runpy, sys, warnings; "
         "import evidence_database.__init__; "
         "assert evidence_database is evidport; "
         "assert sys.modules['evidence_database'] is evidport; "
@@ -57,7 +57,13 @@ def test_explicit_dunder_init_import_and_runpy_keep_package_identity():
         "warnings.simplefilter('ignore', RuntimeWarning); "
         "ns1 = runpy.run_module('evidence_database.__init__'); "
         "ns2 = runpy.run_module('evidence_database.__init__', run_name='__not_main__'); "
-        "assert ns1['__version__'] == ns2['__version__'] == evidport.__version__; "
+        "ns3 = runpy.run_module('evidence_database.__init__', run_name='evidport', alter_sys=True); "
+        "ns4 = runpy.run_module('evidport.__init__', run_name='evidport', alter_sys=True); "
+        "ns5 = runpy.run_path(evidport.__file__, run_name='evidport'); "
+        "assert ns1['__version__'] == ns2['__version__'] == ns3['__version__'] "
+        "== ns4['__version__'] == ns5['__version__'] == evidport.__version__; "
+        "assert sys.modules['evidence_database'] is sys.modules['evidport'] is evidport; "
+        "assert importlib.reload(evidence_database) is evidport; "
         "assert sys.modules['evidence_database'] is evidport"
     )
     subprocess.run([sys.executable, "-c", code], check=True)

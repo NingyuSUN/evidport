@@ -183,9 +183,22 @@ class _EvidPortCompatFinder(_abc.MetaPathFinder):
 
 
 def _install_compat() -> None:
-    if __name__ != "evidport":
+    if (
+        __name__ != "evidport"
+        or getattr(__spec__, "name", None) != "evidport"
+        or getattr(__spec__, "submodule_search_locations", None) is None
+    ):
         return
     me = _ensure_dual_loader(_sys.modules["evidport"])
+    existing = _sys.modules.get("evidence_database")
+    existing_spec = getattr(existing, "__spec__", None)
+    if (
+        existing is not None
+        and existing is not me
+        and getattr(existing_spec, "name", None) == "evidport"
+        and getattr(existing_spec, "origin", None) == getattr(__spec__, "origin", None)
+    ):
+        return
     _sys.modules["evidence_database"] = me
     if not any(type(f).__name__ == "_EvidPortCompatFinder" for f in _sys.meta_path):
         _sys.meta_path.insert(0, _EvidPortCompatFinder())
